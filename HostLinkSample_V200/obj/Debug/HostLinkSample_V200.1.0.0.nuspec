@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>HostLinkSample_V200</id>
+    <version>1.0.0</version>
+    <authors>HostLinkSample_V200</authors>
+    <description>Package Description</description>
+    <repository type="git" />
+    <dependencies>
+      <group targetFramework="net5.0">
+        <dependency id="System.Data.SqlClient" version="4.8.6" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="C:\My Documents\code\HostLinkSample_V200\HostLinkSample_V200\bin\Debug\net5.0\HostLinkSample_V200.runtimeconfig.json" target="lib\net5.0\HostLinkSample_V200.runtimeconfig.json" />
+    <file src="C:\My Documents\code\HostLinkSample_V200\HostLinkSample_V200\bin\Debug\net5.0\HostLinkSample_V200.dll" target="lib\net5.0\HostLinkSample_V200.dll" />
+  </files>
+</package>
