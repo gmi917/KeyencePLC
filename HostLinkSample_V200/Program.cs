@@ -18,9 +18,15 @@ namespace cs_dll_sample
         static async Task Main(string[] args)
         {
             int err = 0;
-            int sock = 0;           
-            string connectionString = "Server=192.168.1.9,1433;Database=TEST1;User Id=pwc;Password=PWC@admin;";
+            int sock = 0;  
+            //測試DB
+            //string connectionString = "Server=192.168.1.9,1433;Database=TEST1;User Id=pwc;Password=PWC@admin;";
+            //正式DB
+            string connectionString = "Server=192.168.1.9,1433;Database=JOYTECH;User Id=pwc;Password=PWC@admin;";
+            //Log DB
             string LogconnectionString = "Server=192.168.1.9,1433;Database=LOG;User Id=pwc;Password=PWC@admin;";
+            //string DBName = "TEST1";//測試資料庫
+            string DBName="JOYTECH";//正式資料庫
             SqlConnection connection = null;
             SqlConnection Logconnection = null;
             ArrayList ipqc1ResultList = new ArrayList();
@@ -36,7 +42,7 @@ namespace cs_dll_sample
             string processCode = "";//製程代號
             string qcId ="";//主鍵
             string employeeID = "";//員工工號
-            string predictQty = "";//預計產量
+            //string predictQty = "";//預計產量
             string ZF50YearStr = "";//年
             string ZF60MonthStr = "";//月
             string ZF70DayStr = "";//日
@@ -57,6 +63,7 @@ namespace cs_dll_sample
             int updPqc1RowsAffected = 0;
             int updPqc2RowsAffected = 0;
             int updPqc3RowsAffected = 0;
+            string JYT012a008 = "";//2080→OP1;2090→OP2
             JYT012 jyt012 = new JYT012();
             IpqcItem primumQCData = new IpqcItem();
             //IpqcItem item = new IpqcItem();
@@ -106,9 +113,7 @@ namespace cs_dll_sample
                 Console.WriteLine("PLC連線發生異常");
                 KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗" + ex.Message, "錯誤", "");
                 return;            
-            }
-
-            //err = KHL.KHLConnect("10.1.9.106", 8500, 3000, KvHostLink.KHLSockType.SOCK_TCP, ref sock);           
+            }          
            
             // Interface Buffer
             byte[] readBuf = new byte[2048];
@@ -231,6 +236,14 @@ namespace cs_dll_sample
             KHST.ByteToInt(ref rdZF4Str, readBuf, 2, 0);
             ZF4 = rdZF4Str[0].ToString();
             Console.WriteLine("\tZF4:{0}", ZF4);
+            if(!ZF4.Equals("") && ZF4.Equals("1")) //表OP1
+            {
+                JYT012a008 = "2080";
+            }
+            else //表OP2
+            {
+                JYT012a008 = "2090";
+            }
             //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF4:{0}", rdZF4Str[i]);
 
             //量測數據完成信號(ZF8)
@@ -248,7 +261,7 @@ namespace cs_dll_sample
             KHST.ByteToInt(ref rdZF8Str, readBuf, 2, 0);
             ZF8 = rdZF8Str[0].ToString();
             Console.WriteLine("\tZF8:{0}", ZF8);
-            for (int i = 0; i < 1; i++) Console.WriteLine("\tZF8:{0}", rdZF8Str[i]);
+            //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF8:{0}", rdZF8Str[i]);
 
             //工件一量測數據OK or NG信號(ZF16)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 16, 1, readBuf);
@@ -314,7 +327,8 @@ namespace cs_dll_sample
             int[] rdZF50Str = new int[4];
             KHST.ByteToInt(ref rdZF50Str, readBuf, 4, 0);
             ZF50YearStr = rdZF50Str[0].ToString();
-            for (int i = 0; i < 2; i++) Console.WriteLine("\tZF50:{0}", rdZF50Str[0]);
+            Console.WriteLine("\tZF50:{0}", ZF50YearStr);
+            //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF50:{0}", rdZF50Str[0]);
 
             //首件日期-月(ZF60)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 60, 2, readBuf);
@@ -329,7 +343,8 @@ namespace cs_dll_sample
             int[] rdZF60Str = new int[4];
             KHST.ByteToInt(ref rdZF60Str, readBuf, 4, 0);
             ZF60MonthStr = rdZF60Str[0].ToString();
-            for (int i = 0; i < 2; i++) Console.WriteLine("\tZF60:{0}", rdZF60Str[0]);
+            Console.WriteLine("\tZF60:{0}", ZF60MonthStr);
+            //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF60:{0}", rdZF60Str[0]);
 
             //首件日期-日(ZF70)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 70, 2, readBuf);
@@ -344,29 +359,29 @@ namespace cs_dll_sample
             int[] rdZF70Str = new int[4];
             KHST.ByteToInt(ref rdZF70Str, readBuf, 4, 0);
             ZF70DayStr = rdZF70Str[0].ToString();
-            for (int i = 0; i < 2; i++) Console.WriteLine("\tZF70:{0}", rdZF70Str[0]);
+            Console.WriteLine("\tZF70:{0}", ZF70DayStr);
+            //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF70:{0}", rdZF70Str[0]);
+
             //格式化為 YYYY-MM-DD 的格式
             DateTime date = DateTime.Parse(ZF50YearStr + "-" + ZF60MonthStr + "-" + ZF70DayStr);
             firstItemDate = date.ToString("yyyy-MM-dd");
             Console.WriteLine("\tfirstItemDate:{0}", firstItemDate);
 
             //預計產量(ZF80)
-            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 80, 4, readBuf);
-            if (err != 0)
-            {
-                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
-                Console.WriteLine("PLC連線發生異常");
-                Console.WriteLine(err);
-                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
-                return;
-            }
-            Console.WriteLine("讀預計產量(ZF80)");
-            int[] rdZF80Str = new int[8];
-            KHST.ByteToInt(ref rdZF80Str, readBuf, 4, 0);
-            //predictQty = System.Text.Encoding.GetEncoding(65001).GetString(rdZF80Str);
-            predictQty = rdZF80Str[0].ToString();
-            Console.WriteLine("\tZF80:{0}", predictQty);
-            //for (int i = 0; i < 4; i++) Console.WriteLine("\tZF80:{0}", rdZF80Str[0]);
+            //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 80, 4, readBuf);
+            //if (err != 0)
+            //{
+            //    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+            //    Console.WriteLine("PLC連線發生異常");
+            //    Console.WriteLine(err);
+            //    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+            //    return;
+            //}
+            //Console.WriteLine("讀預計產量(ZF80)");
+            //int[] rdZF80Str = new int[8];
+            //KHST.ByteToInt(ref rdZF80Str, readBuf, 4, 0);
+            //predictQty = rdZF80Str[0].ToString();
+            //Console.WriteLine("\tZF80:{0}", predictQty);
 
             //讀製令單別(ZF30~ZF31)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 30, 2, readBuf);
@@ -425,7 +440,7 @@ namespace cs_dll_sample
             Console.WriteLine(employeeID);
 
             //ZF18ipqc2 = "1";
-            //ZF20ipqc3 = "1";
+            //ZF20ipqc3 = "2";
             //ZF0 = "2";
 
             try
@@ -433,9 +448,7 @@ namespace cs_dll_sample
                 connection = new SqlConnection(connectionString);
 
                 connection.Open();
-                Console.WriteLine("資料庫連線...");
-                String DBName = "TEST1";//測試資料庫
-                //public static String DBName="JOYTECH";//正式資料庫
+                Console.WriteLine("資料庫連線...");                
                 
                 if (ZF0!=null&& !ZF0.Equals("")&&ZF0.Equals("1"))//1→現場人員
                 {
@@ -475,7 +488,7 @@ namespace cs_dll_sample
                                     }
                                     //找該產品品號的表單號碼最大值
                                     string maxFormNumberQuery = "SELECT  JYT012a002 FROM " + DBName + ".dbo.JYT012 where JYT012a002=(select  max(JYT012a002) from " + DBName + ".dbo.JYT012"
-                                        + " where JYT012a005='" + itemNumber + "')";
+                                        + " where JYT012a008='"+ JYT012a008+"' and JYT012a005='" + itemNumber + "')";
                                     using (SqlCommand maxFormNumberQuerycommand = new SqlCommand(maxFormNumberQuery, connection))
                                     {
                                         using (SqlDataReader maxFormNumberQueryreader = maxFormNumberQuerycommand.ExecuteReader())
@@ -529,7 +542,7 @@ namespace cs_dll_sample
 
                                     //找首件/自主檢查項目
                                     String getIpqc = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
-                                         + " and JYT012a002='" + maxFormNumber + "' and JYT012b010='TMX' order by JYT012b003 asc";
+                                         + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='TMX' order by JYT012b003 asc";
                                     using (SqlCommand getIpqccommand = new SqlCommand(getIpqc, connection))
                                     {
                                         using (SqlDataReader getIpqcreader = getIpqccommand.ExecuteReader())
@@ -592,9 +605,9 @@ namespace cs_dll_sample
 
                                     //insert檢驗說明書基本資料並回傳qc_id
                                     string insSpecData = "INSERT INTO " + DBName + ".dbo.QCDataCollection (itemName,specification,manufactureOrder,manufactureNo,partNumber,imageNumber,processCode,version," +
-                                         "formNumber,firstItemDate,firstItemStaff,predictQty,machineNumber,productionLine,imageFileName,ipqcCREATOR)" +
+                                         "formNumber,firstItemDate,firstItemStaff,machineNumber,productionLine,imageFileName,ipqcCREATOR)" +
                                          " VALUES (@itemName, @specification, @manufactureOrder,@manufactureNo,@partNumber,@imageNumber,@processCode,@version," +
-                                         "@formNumber,@firstItemDate,@firstItemStaff,@predictQty,@machineNumber,@productionLine,@imageFileName,@ipqcCREATOR)" +
+                                         "@formNumber,@firstItemDate,@firstItemStaff,@machineNumber,@productionLine,@imageFileName,@ipqcCREATOR)" +
                                          "; SELECT SCOPE_IDENTITY();";
                                     // 資料參數
                                     SqlParameter[] QCDataCollectionparameters = {
@@ -609,7 +622,7 @@ namespace cs_dll_sample
                                     new SqlParameter("@formNumber", jyt012.JYT012a002),
                                     new SqlParameter("@firstItemDate", firstItemDate),
                                     new SqlParameter("@firstItemStaff", employeeID),
-                                    new SqlParameter("@predictQty", predictQty),
+                                    //new SqlParameter("@predictQty", predictQty),
                                     new SqlParameter("@machineNumber", ""),
                                     new SqlParameter("@productionLine", productLineId),
                                     new SqlParameter("@imageFileName", jyt012.UDF01),
@@ -648,7 +661,7 @@ namespace cs_dll_sample
                                         IpqcItem itemList = (IpqcItem)ipqcItemList[i];
                                         //找首件/自主檢查項目
                                         String getIpqcData = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
-                                        + " and JYT012a002='" + maxFormNumber + "' and JYT012b003='" + itemList.JYT012b003 + "' and  JYT012b010='TMX'";
+                                        + " and JYT012a002='" + maxFormNumber + "' and JYT012b003='" + itemList.JYT012b003 + "' and  UPPER(JYT012b010)='TMX'";
                                         using (SqlCommand getIpqcDatacommand = new SqlCommand(getIpqcData, connection))
                                         {
                                             using (SqlDataReader getIpqcDatareader = getIpqcDatacommand.ExecuteReader())
@@ -789,7 +802,7 @@ namespace cs_dll_sample
                                 qcId = getQc_idQueryreader["qc_id"].ToString();
                                 getQc_idQueryreader.Close();
                                 //寫品檢成品檢驗記錄
-                                String getQCDataCollectionData = "select qc_id,itemName,specification,manufactureOrder,manufactureNo,partNumber,imageNumber,version,formNumber,firstItemDate,firstItemStaff,predictQty,machineNumber,imageFileName from " + DBName + ".dbo.QCDataCollection where "
+                                String getQCDataCollectionData = "select qc_id,itemName,specification,manufactureOrder,manufactureNo,partNumber,imageNumber,version,formNumber,firstItemDate,firstItemStaff,machineNumber,imageFileName from " + DBName + ".dbo.QCDataCollection where "
                                      + "qc_id='" + qcId + "'";
                                 using (SqlCommand getQCDataCollectionDatacommand = new SqlCommand(getQCDataCollectionData, connection))
                                 {
@@ -969,15 +982,7 @@ namespace cs_dll_sample
                                 return;
                             }
                         }
-                    }
-                            //}
-                            //else
-                            //{
-                            //    getQcCountQueryreader.Close();
-                            //    result = MessageBox.Show("品檢人員無資料需要檢測", "結果", buttons);
-                            //    Console.WriteLine("品檢人員無資料需要檢測");
-                            //    return;
-                            //}                                                                                           
+                    }                                                                          
                 }
                 else
                 {
@@ -1038,20 +1043,7 @@ namespace cs_dll_sample
                     {
                         Logconnection.Close();
                     }
-                }
-            //}
-            //catch(Exception ex)
-            //{
-
-            //}
-            //finally
-            //{
-            //    if (Logconnection != null)
-            //    {
-            //        Logconnection.Close();
-            //    }
-            //}
-
+                }         
         }
     }
 }
