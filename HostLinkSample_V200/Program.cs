@@ -32,7 +32,8 @@ namespace cs_dll_sample
             ArrayList ipqc1ResultList = new ArrayList();
             ArrayList ipqc2ResultList = new ArrayList();
             ArrayList ipqc3ResultList = new ArrayList();
-            ArrayList ipqcItemList = new ArrayList();
+            ArrayList ipqcItemList = new ArrayList();//現場人員
+            ArrayList pqcItemList = new ArrayList();//品檢人員            
             float[] rdEM3000float = new float[2];//工件一量測數據暫存器
             float[] rdEM4000float = new float[2];//工件二量測數據暫存器
             float[] rdEM5000float = new float[2];//工件三量測數據暫存器
@@ -364,9 +365,21 @@ namespace cs_dll_sample
             //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF70:{0}", rdZF70Str[0]);
 
             //格式化為 YYYY-MM-DD 的格式
-            DateTime date = DateTime.Parse(ZF50YearStr + "-" + ZF60MonthStr + "-" + ZF70DayStr);
-            firstItemDate = date.ToString("yyyy-MM-dd");
-            Console.WriteLine("\tfirstItemDate:{0}", firstItemDate);
+            if(!ZF50YearStr.Equals("0") && !ZF60MonthStr.Equals("0") && !ZF70DayStr.Equals("0"))
+            {
+                DateTime date = DateTime.Parse(ZF50YearStr + "-" + ZF60MonthStr + "-" + ZF70DayStr);
+                firstItemDate = date.ToString("yyyy-MM-dd");
+                Console.WriteLine("\tfirstItemDate:{0}", firstItemDate);
+            }
+            else
+            {
+                result = MessageBox.Show("PLC日期資料格式錯誤，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                Console.WriteLine("PLC日期資料格式錯誤");
+                Console.WriteLine(err);
+                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC日期資料格式錯誤，操作失敗", "警告", err.ToString());
+                return;
+            }
+           
 
             //預計產量(ZF80)
             //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 80, 4, readBuf);
@@ -442,7 +455,7 @@ namespace cs_dll_sample
 
             //ZF18ipqc2 = "1";
             //ZF20ipqc3 = "2";
-            //ZF0 = "2";
+            //ZF0 = "1";
 
             try
             {
@@ -702,28 +715,28 @@ namespace cs_dll_sample
                                     }
 
                                     //update首件/自主檢查記錄實測狀況(ipqc2)
-                                    for (int i = 0; i < ipqcItemList.Count; i++)
+                                    for (int j = 0; j < ipqcItemList.Count; j++)
                                     {
-                                        IpqcItem itemList = (IpqcItem)ipqcItemList[i];
+                                        IpqcItem itemList = (IpqcItem)ipqcItemList[j];
                                         String updIpqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc2=@ipqc2"
                                              + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
                                         using (SqlCommand updIpqc2Datacommand = new SqlCommand(updIpqc2Data, connection))
                                         {
-                                            updIpqc2Datacommand.Parameters.AddWithValue("@ipqc2", ipqc2ResultList[i]);
+                                            updIpqc2Datacommand.Parameters.AddWithValue("@ipqc2", ipqc2ResultList[j]);
                                             int updIpqc2Rows = updIpqc2Datacommand.ExecuteNonQuery();
                                             updIpqc2RowsAffected = updIpqc2RowsAffected + updIpqc2Rows;
                                         }
                                     }
 
                                     //update首件/自主檢查記錄實測狀況(ipqc3)
-                                    for (int i = 0; i < ipqcItemList.Count; i++)
+                                    for (int k = 0; k < ipqcItemList.Count; k++)
                                     {
-                                        IpqcItem itemList = (IpqcItem)ipqcItemList[i];
+                                        IpqcItem itemList = (IpqcItem)ipqcItemList[k];
                                         String updIpqc3Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc3=@ipqc3"
                                              + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
                                         using (SqlCommand updIpqc3Datacommand = new SqlCommand(updIpqc3Data, connection))
                                         {
-                                            updIpqc3Datacommand.Parameters.AddWithValue("@ipqc3", ipqc3ResultList[i]);
+                                            updIpqc3Datacommand.Parameters.AddWithValue("@ipqc3", ipqc3ResultList[k]);
                                             int updIpqc3Rows = updIpqc3Datacommand.ExecuteNonQuery();
                                             updIpqc3RowsAffected = updIpqc3RowsAffected + updIpqc3Rows;
                                         }
@@ -829,16 +842,36 @@ namespace cs_dll_sample
                                                     item.JYT012b007 = getQCTestDatareader["standardValue"].ToString();
                                                     item.JYT012b008 = getQCTestDatareader["upperLimit"].ToString();
                                                     item.JYT012b009 = getQCTestDatareader["lowerLimit"].ToString();
-                                                    ipqcItemList.Add(item);
+                                                    pqcItemList.Add(item);
                                                 }
                                                 getQCTestDatareader.Close();
                                             }
                                         }
+                                        //確認資料筆數
+                                        if (pqcItemList.Count > 0)
+                                        {
+                                            if (!ipqc1ResultList.Count.Equals(pqcItemList.Count) && !ipqc2ResultList.Count.Equals(pqcItemList.Count)
+                                                && !ipqc3ResultList.Count.Equals(pqcItemList.Count))
+                                            {
+                                                result = MessageBox.Show("影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                Console.WriteLine("影像量測儀資料與資料庫兩者檢測數據筆數不一致");
+                                                KvHostLinkLog(employeeID, mo, mn, itemNumber, "影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", "");
+                                                return;
+                                            }
+                                           
+                                        }
+                                        else
+                                        {
+                                            result = MessageBox.Show("在資料庫系統找不到品檢人員待驗資料", "警告", buttons, MessageBoxIcon.Warning);
+                                            Console.WriteLine("在資料庫系統找不到品檢人員待驗資料");
+                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "在資料庫系統找不到品檢人員待驗資料", "警告", "");
+                                            return;
+                                        }
 
                                         //寫品檢成品檢驗記錄(pqc1)
-                                        for (int i = 0; i < ipqcItemList.Count; i++)
+                                        for (int i = 0; i < pqcItemList.Count; i++)
                                         {
-                                            IpqcItem itemList = (IpqcItem)ipqcItemList[i];
+                                            IpqcItem itemList = (IpqcItem)pqcItemList[i];
                                             String updPqc1Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc1=@pqc1"
                                                  + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
                                             using (SqlCommand updPqc1Datacommand = new SqlCommand(updPqc1Data, connection))
@@ -850,28 +883,28 @@ namespace cs_dll_sample
                                         }
 
                                         //寫品檢成品檢驗記錄(pqc2)
-                                        for (int i = 0; i < ipqcItemList.Count; i++)
+                                        for (int j = 0; j < pqcItemList.Count; j++)
                                         {
-                                            IpqcItem itemList = (IpqcItem)ipqcItemList[i];
+                                            IpqcItem itemList = (IpqcItem)pqcItemList[j];
                                             String updPqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc2=@pqc2"
                                                  + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
                                             using (SqlCommand updPqc2Datacommand = new SqlCommand(updPqc2Data, connection))
                                             {
-                                                updPqc2Datacommand.Parameters.AddWithValue("@pqc2", ipqc2ResultList[i]);
+                                                updPqc2Datacommand.Parameters.AddWithValue("@pqc2", ipqc2ResultList[j]);
                                                 int updateRowsAffected = updPqc2Datacommand.ExecuteNonQuery();
                                                 updPqc2RowsAffected = updPqc2RowsAffected + updateRowsAffected;
                                             }
                                         }
 
                                         //寫品檢成品檢驗記錄(pqc3)
-                                        for (int i = 0; i < ipqcItemList.Count; i++)
+                                        for (int k = 0; k < pqcItemList.Count; k++)
                                         {
-                                            IpqcItem itemList = (IpqcItem)ipqcItemList[i];
+                                            IpqcItem itemList = (IpqcItem)pqcItemList[k];
                                             String updPqc3Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc3=@pqc3"
                                                  + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
                                             using (SqlCommand updPqc3Datacommand = new SqlCommand(updPqc3Data, connection))
                                             {
-                                                updPqc3Datacommand.Parameters.AddWithValue("@pqc3", ipqc3ResultList[i]);
+                                                updPqc3Datacommand.Parameters.AddWithValue("@pqc3", ipqc3ResultList[k]);
                                                 int updateRowsAffected = updPqc3Datacommand.ExecuteNonQuery();
                                                 updPqc3RowsAffected = updPqc3RowsAffected + updateRowsAffected;
                                             }
