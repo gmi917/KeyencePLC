@@ -124,6 +124,7 @@ namespace cs_dll_sample
 
             for (uint i = 0; i < 100; i += 2)
             {
+                //有部分暫存器存一筆資料需要放2個暫存器,所以迴圈i一次要加2,wordNum參數為2
                 err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 3000 + i, 2, readBuf);
                 if (err != 0)
                 {
@@ -582,6 +583,7 @@ namespace cs_dll_sample
                                         KvHostLinkLog(employeeID, mo, mn, itemNumber, "在DSS系統找不到資料，操作失敗", "警告", "");
                                         return;
                                     }
+
                                     //找生產線別
                                     string productLineIdQuery = "SELECT TA021 from " + DBName + ".dbo.MOCTA where TA001 ='" + mo + "' and TA002 ='" + mn + "'";
                                     using (SqlCommand productLineIdQuerycommand = new SqlCommand(productLineIdQuery, connection))
@@ -611,23 +613,22 @@ namespace cs_dll_sample
                                          "; SELECT SCOPE_IDENTITY();";
                                     // 資料參數
                                     SqlParameter[] QCDataCollectionparameters = {
-                                    new SqlParameter("@itemName", jyt012.JYT012a003.ToString()),
-                                    new SqlParameter("@specification", jyt012.UDF02.ToString()),
-                                    new SqlParameter("@manufactureOrder", mo),
-                                    new SqlParameter("@manufactureNo", mn),
-                                    new SqlParameter("@partNumber", jyt012.JYT012a005),
-                                    new SqlParameter("@imageNumber", jyt012.JYT012a004),
-                                    new SqlParameter("@processCode", processCode),
-                                    new SqlParameter("@version", jyt012.JYT012a006),
-                                    new SqlParameter("@formNumber", jyt012.JYT012a002),
-                                    new SqlParameter("@firstItemDate", firstItemDate),
-                                    new SqlParameter("@firstItemStaff", employeeID),
-                                    //new SqlParameter("@predictQty", predictQty),
-                                    new SqlParameter("@machineNumber", ""),
-                                    new SqlParameter("@productionLine", productLineId),
-                                    new SqlParameter("@imageFileName", jyt012.UDF01),
-                                    new SqlParameter("@ipqcCREATOR", employeeID)
-                                };
+                                        new SqlParameter("@itemName", jyt012.JYT012a003.ToString()),
+                                        new SqlParameter("@specification", jyt012.UDF02.ToString()),
+                                        new SqlParameter("@manufactureOrder", mo),
+                                        new SqlParameter("@manufactureNo", mn),
+                                        new SqlParameter("@partNumber", jyt012.JYT012a005),
+                                        new SqlParameter("@imageNumber", jyt012.JYT012a004),
+                                        new SqlParameter("@processCode", processCode),
+                                        new SqlParameter("@version", jyt012.JYT012a006),
+                                        new SqlParameter("@formNumber", jyt012.JYT012a002),
+                                        new SqlParameter("@firstItemDate", firstItemDate),
+                                        new SqlParameter("@firstItemStaff", employeeID),                                    
+                                        new SqlParameter("@machineNumber", ""),
+                                        new SqlParameter("@productionLine", productLineId),
+                                        new SqlParameter("@imageFileName", jyt012.UDF01),
+                                        new SqlParameter("@ipqcCREATOR", employeeID)
+                                    };
 
                                     using (SqlCommand insSpecDatacommand = new SqlCommand(insSpecData, connection))
                                     {
@@ -637,23 +638,7 @@ namespace cs_dll_sample
                                         // 執行插入和取得ID的查詢
                                         var insertedId = insSpecDatacommand.ExecuteScalar();
                                         qcId = insertedId.ToString();
-                                        Console.WriteLine("qcId: " + qcId);
-                                        //using (SqlDataReader insSpecDatareader = insSpecDatacommand.ExecuteReader())
-                                        //{
-                                        //    if (insSpecDatareader.Read() && insSpecDatareader["id"] != DBNull.Value)
-                                        //    {
-                                        //        // 取得自增ID
-                                        //        qcId = insSpecDatareader["id"].ToString();
-                                        //        Console.WriteLine("qcId: " + qcId);
-                                        //    }
-                                        //    else
-                                        //    {
-                                        //        result = MessageBox.Show("無回傳qc_id資料，寫入資料失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                        //        Console.WriteLine("無回傳qc_id資料");
-                                        //        return;
-                                        //    }
-                                        //    insSpecDatareader.Close();
-                                        //}
+                                        Console.WriteLine("qcId: " + qcId);                                       
                                     }
 
                                     for (int i = 0; i < ipqcItemList.Count; i++)
@@ -694,18 +679,18 @@ namespace cs_dll_sample
                                                      "@ipqc1,@ipqcCREATOR)";
                                             // 資料參數
                                             SqlParameter[] QCDataCollectionContentparameters = {
-                                            new SqlParameter("@qc_id", qcId),
-                                            new SqlParameter("@itemSN", primumQCData.JYT012b003),
-                                            new SqlParameter("@testItem", primumQCData.JYT012b005),
-                                            new SqlParameter("@testUnit", primumQCData.JYT012b006),
-                                            new SqlParameter("@standardValue", primumQCData.JYT012b007),
-                                            new SqlParameter("@upperLimit", primumQCData.JYT012b008),
-                                            new SqlParameter("@lowerLimit", primumQCData.JYT012b009),
-                                            new SqlParameter("@testTool", primumQCData.JYT012b010),
-                                            new SqlParameter("@flag", primumQCData.UDF03),
-                                            new SqlParameter("@ipqc1", ipqc1ResultList[i]),
-                                            new SqlParameter("@ipqcCREATOR", "")
-                                        };
+                                                new SqlParameter("@qc_id", qcId),
+                                                new SqlParameter("@itemSN", primumQCData.JYT012b003),
+                                                new SqlParameter("@testItem", primumQCData.JYT012b005),
+                                                new SqlParameter("@testUnit", primumQCData.JYT012b006),
+                                                new SqlParameter("@standardValue", primumQCData.JYT012b007),
+                                                new SqlParameter("@upperLimit", primumQCData.JYT012b008),
+                                                new SqlParameter("@lowerLimit", primumQCData.JYT012b009),
+                                                new SqlParameter("@testTool", primumQCData.JYT012b010),
+                                                new SqlParameter("@flag", primumQCData.UDF03),
+                                                new SqlParameter("@ipqc1", ipqc1ResultList[i]),
+                                                new SqlParameter("@ipqcCREATOR", "")
+                                            };
                                             using (SqlCommand insIpqc1Datacommand = new SqlCommand(insIpqc1Data, connection))
                                             {
                                                 // 設定參數
@@ -715,6 +700,7 @@ namespace cs_dll_sample
                                             }
                                         }
                                     }
+
                                     //update首件/自主檢查記錄實測狀況(ipqc2)
                                     for (int i = 0; i < ipqcItemList.Count; i++)
                                     {
@@ -728,6 +714,7 @@ namespace cs_dll_sample
                                             updIpqc2RowsAffected = updIpqc2RowsAffected + updIpqc2Rows;
                                         }
                                     }
+
                                     //update首件/自主檢查記錄實測狀況(ipqc3)
                                     for (int i = 0; i < ipqcItemList.Count; i++)
                                     {
@@ -785,8 +772,7 @@ namespace cs_dll_sample
                         Console.WriteLine("工件量測數據不是全部都OK");
                         KvHostLinkLog(employeeID, mo, mn, itemNumber, "工件量測數據不是全部都OK，操作失敗", "警告", "");
                         return;
-                    }
-                                                     
+                    }                                                     
                 }
                 else if(ZF0 != null && !ZF0.Equals("") && ZF0.Equals("2"))//品檢人員
                 {
@@ -848,6 +834,7 @@ namespace cs_dll_sample
                                                 getQCTestDatareader.Close();
                                             }
                                         }
+
                                         //寫品檢成品檢驗記錄(pqc1)
                                         for (int i = 0; i < ipqcItemList.Count; i++)
                                         {
@@ -990,9 +977,7 @@ namespace cs_dll_sample
                     Console.WriteLine("現場人員和品檢人員回傳值有誤");
                     KvHostLinkLog(employeeID, mo, mn, itemNumber, "現場人員和品檢人員回傳值有誤，操作失敗", "警告", "");
                     return;
-                }
-
-                
+                }                
             }
             catch (Exception ex)
             {
@@ -1014,36 +999,33 @@ namespace cs_dll_sample
                     connection.Close();
                 }
             }
-            //try
-            //{
-                void KvHostLinkLog(string employeeID, string manufactureOrder, string manufactureNo,
-            string itemNumber, string Msg, string Status, string KvHostLinkEErrorCode)
+
+            void KvHostLinkLog(string employeeID, string manufactureOrder, string manufactureNo,
+                string itemNumber, string Msg, string Status, string KvHostLinkEErrorCode)
+            {
+                Logconnection = new SqlConnection(LogconnectionString);
+
+                Logconnection.Open();
+
+                string insertQuery = "INSERT INTO KvHostLinkLog (employeeID,manufactureOrder,manufactureNo,itemNumber, Msg," +
+                     " Status,KvHostLinkEErrorCode) VALUES (@employeeID, @manufactureOrder, @manufactureNo,@itemNumber," +
+                     "@Msg,@Status,@KvHostLinkEErrorCode)";
+                using (SqlCommand insertQuerycommand = new SqlCommand(insertQuery, Logconnection))
                 {
-                    Logconnection = new SqlConnection(LogconnectionString);
-
-                    Logconnection.Open();
-
-                    string insertQuery = "INSERT INTO KvHostLinkLog (employeeID,manufactureOrder,manufactureNo,itemNumber, Msg," +
-                        " Status,KvHostLinkEErrorCode) VALUES (@employeeID, @manufactureOrder, @manufactureNo,@itemNumber," +
-                        "@Msg,@Status,@KvHostLinkEErrorCode)";
-                    using (SqlCommand insertQuerycommand = new SqlCommand(insertQuery, Logconnection))
-                    {
-                       
-                            insertQuerycommand.Parameters.AddWithValue("@employeeID", employeeID);
-                            insertQuerycommand.Parameters.AddWithValue("@manufactureOrder", manufactureOrder);
-                            insertQuerycommand.Parameters.AddWithValue("@manufactureNo", manufactureNo);
-                            insertQuerycommand.Parameters.AddWithValue("@itemNumber", itemNumber);
-                            insertQuerycommand.Parameters.AddWithValue("@Msg", Msg);
-                            insertQuerycommand.Parameters.AddWithValue("@Status", Status);
-                            insertQuerycommand.Parameters.AddWithValue("@KvHostLinkEErrorCode", KvHostLinkEErrorCode);
-                            insertQuerycommand.ExecuteNonQuery();
-                        
-                    }
-                    if (Logconnection != null)
-                    {
-                        Logconnection.Close();
-                    }
-                }         
+                    insertQuerycommand.Parameters.AddWithValue("@employeeID", employeeID);
+                    insertQuerycommand.Parameters.AddWithValue("@manufactureOrder", manufactureOrder);
+                    insertQuerycommand.Parameters.AddWithValue("@manufactureNo", manufactureNo);
+                    insertQuerycommand.Parameters.AddWithValue("@itemNumber", itemNumber);
+                    insertQuerycommand.Parameters.AddWithValue("@Msg", Msg);
+                    insertQuerycommand.Parameters.AddWithValue("@Status", Status);
+                    insertQuerycommand.Parameters.AddWithValue("@KvHostLinkEErrorCode", KvHostLinkEErrorCode);
+                    insertQuerycommand.ExecuteNonQuery();
+                }
+                if (Logconnection != null)
+                {
+                    Logconnection.Close();
+                }
+            }         
         }
     }
 }
