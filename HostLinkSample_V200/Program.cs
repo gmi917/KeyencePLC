@@ -238,14 +238,33 @@ namespace cs_dll_sample
             KHST.ByteToInt(ref rdZF4Str, readBuf, 2, 0);
             ZF4 = rdZF4Str[0].ToString();
             Console.WriteLine("\tZF4:{0}", ZF4);
-            if(!ZF4.Equals("") && ZF4.Equals("1")) //表OP1
+            if (!ZF4.Equals(""))
             {
-                JYT012a008 = "2080";
+                if (ZF4.Equals("1"))//表OP1
+                {
+                    JYT012a008 = "2080";
+                }
+                else if (ZF4.Equals("2"))//表OP2
+                {
+                    JYT012a008 = "2090";
+                }
+                else
+                {
+                    result = MessageBox.Show("OP1或OP2的值與介面定義不同，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                    Console.WriteLine("OP1或OP2的值與介面定義不同");
+                    Console.WriteLine(err);
+                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "OP1或OP2的值與介面定義不同，操作失敗", "錯誤", err.ToString());
+                    return;
+                }
             }
-            else //表OP2
+            else
             {
-                JYT012a008 = "2090";
-            }
+                result = MessageBox.Show("讀不到OP1或OP2數值，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                Console.WriteLine("讀不到OP1或OP2數值");
+                Console.WriteLine(err);
+                KvHostLinkLog(employeeID, mo, mn, itemNumber, "讀不到OP1或OP2數值，操作失敗", "錯誤", err.ToString());
+                return;
+            }         
             //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF4:{0}", rdZF4Str[i]);
 
             //量測數據完成信號(ZF8)
@@ -317,69 +336,57 @@ namespace cs_dll_sample
             //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF20:{0}", rdZF20Str[0]);
 
             //首件日期-年(ZF50)
-            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 50, 2, readBuf);
-            if (err != 0)
-            {
-                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
-                Console.WriteLine("PLC連線發生異常");
-                Console.WriteLine(err);
-                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
-                return;
-            }
-            int[] rdZF50Str = new int[4];
-            KHST.ByteToInt(ref rdZF50Str, readBuf, 4, 0);
-            ZF50YearStr = rdZF50Str[0].ToString();
-            Console.WriteLine("\tZF50:{0}", ZF50YearStr);
+            //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 50, 2, readBuf);
+            //if (err != 0)
+            //{
+            //    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+            //    Console.WriteLine("PLC連線發生異常");
+            //    Console.WriteLine(err);
+            //    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+            //    return;
+            //}
+            //int[] rdZF50Str = new int[4];
+            //KHST.ByteToInt(ref rdZF50Str, readBuf, 4, 0);
+            //ZF50YearStr = rdZF50Str[0].ToString();
+            //Console.WriteLine("\tZF50:{0}", ZF50YearStr);
             //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF50:{0}", rdZF50Str[0]);
 
             //首件日期-月(ZF60)
-            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 60, 2, readBuf);
-            if (err != 0)
-            {
-                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
-                Console.WriteLine("PLC連線發生異常");
-                Console.WriteLine(err);
-                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
-                return;
-            }
-            int[] rdZF60Str = new int[4];
-            KHST.ByteToInt(ref rdZF60Str, readBuf, 4, 0);
-            ZF60MonthStr = rdZF60Str[0].ToString();
-            Console.WriteLine("\tZF60:{0}", ZF60MonthStr);
+            //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 60, 2, readBuf);
+            //if (err != 0)
+            //{
+            //    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+            //    Console.WriteLine("PLC連線發生異常");
+            //    Console.WriteLine(err);
+            //    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+            //    return;
+            //}
+            //int[] rdZF60Str = new int[4];
+            //KHST.ByteToInt(ref rdZF60Str, readBuf, 4, 0);
+            //ZF60MonthStr = rdZF60Str[0].ToString();
+            //Console.WriteLine("\tZF60:{0}", ZF60MonthStr);
             //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF60:{0}", rdZF60Str[0]);
 
             //首件日期-日(ZF70)
-            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 70, 2, readBuf);
-            if (err != 0)
-            {
-                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
-                Console.WriteLine("PLC連線發生異常");
-                Console.WriteLine(err);
-                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
-                return;
-            }
-            int[] rdZF70Str = new int[4];
-            KHST.ByteToInt(ref rdZF70Str, readBuf, 4, 0);
-            ZF70DayStr = rdZF70Str[0].ToString();
-            Console.WriteLine("\tZF70:{0}", ZF70DayStr);
+            //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 70, 2, readBuf);
+            //if (err != 0)
+            //{
+            //    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+            //    Console.WriteLine("PLC連線發生異常");
+            //    Console.WriteLine(err);
+            //    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+            //    return;
+            //}
+            //int[] rdZF70Str = new int[4];
+            //KHST.ByteToInt(ref rdZF70Str, readBuf, 4, 0);
+            //ZF70DayStr = rdZF70Str[0].ToString();
+            //Console.WriteLine("\tZF70:{0}", ZF70DayStr);
             //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF70:{0}", rdZF70Str[0]);
 
             //格式化為 YYYY-MM-DD 的格式
-            if(!ZF50YearStr.Equals("0") && !ZF60MonthStr.Equals("0") && !ZF70DayStr.Equals("0"))
-            {
-                DateTime date = DateTime.Parse(ZF50YearStr + "-" + ZF60MonthStr + "-" + ZF70DayStr);
-                firstItemDate = date.ToString("yyyy-MM-dd");
-                Console.WriteLine("\tfirstItemDate:{0}", firstItemDate);
-            }
-            else
-            {
-                result = MessageBox.Show("PLC日期資料格式錯誤，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                Console.WriteLine("PLC日期資料格式錯誤");
-                Console.WriteLine(err);
-                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC日期資料格式錯誤，操作失敗", "警告", err.ToString());
-                return;
-            }
-           
+            DateTime today = DateTime.Now;
+            firstItemDate = today.ToString("yyyy-MM-dd");
+            Console.WriteLine("\tfirstItemDate:{0}", firstItemDate);                      
 
             //預計產量(ZF80)
             //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 80, 4, readBuf);
@@ -853,9 +860,9 @@ namespace cs_dll_sample
                                             if (!ipqc1ResultList.Count.Equals(pqcItemList.Count) && !ipqc2ResultList.Count.Equals(pqcItemList.Count)
                                                 && !ipqc3ResultList.Count.Equals(pqcItemList.Count))
                                             {
-                                                result = MessageBox.Show("影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                                Console.WriteLine("影像量測儀資料與資料庫兩者檢測數據筆數不一致");
-                                                KvHostLinkLog(employeeID, mo, mn, itemNumber, "影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", "");
+                                                result = MessageBox.Show("品檢人員作業的影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                Console.WriteLine("品檢人員作業的影像量測儀資料與資料庫兩者檢測數據筆數不一致");
+                                                KvHostLinkLog(employeeID, mo, mn, itemNumber, "品檢人員作業的影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", "");
                                                 return;
                                             }
                                            
