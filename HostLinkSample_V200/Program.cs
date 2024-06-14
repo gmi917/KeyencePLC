@@ -11,6 +11,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.Header;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Text;
 namespace cs_dll_sample
 {
     class Program
@@ -20,23 +21,38 @@ namespace cs_dll_sample
             int err = 0;
             int sock = 0;  
             //測試DB
-            //string connectionString = "Server=192.168.1.9,1433;Database=TEST1;User Id=pwc;Password=PWC@admin;";
+            string connectionString = "Server=192.168.1.9,1433;Database=TEST1;User Id=pwc;Password=PWC@admin;";
             //正式DB
-            string connectionString = "Server=192.168.1.9,1433;Database=JOYTECH;User Id=pwc;Password=PWC@admin;";
+            //string connectionString = "Server=192.168.1.9,1433;Database=JOYTECH;User Id=pwc;Password=PWC@admin;";
             //Log DB
             string LogconnectionString = "Server=192.168.1.9,1433;Database=LOG;User Id=pwc;Password=PWC@admin;";
-            //string DBName = "TEST1";//測試資料庫
-            string DBName="JOYTECH";//正式資料庫
+            string DBName = "TEST1";//測試資料庫
+            //string DBName="JOYTECH";//正式資料庫
             SqlConnection connection = null;
             SqlConnection Logconnection = null;
             ArrayList ipqc1ResultList = new ArrayList();
             ArrayList ipqc2ResultList = new ArrayList();
             ArrayList ipqc3ResultList = new ArrayList();
-            ArrayList ipqcItemList = new ArrayList();//現場人員
+            ArrayList ipqc2TMXResultList = new ArrayList();
+            ArrayList ipqc2CCDResultList = new ArrayList();
+            ArrayList ipqc3TMXResultList = new ArrayList();
+            ArrayList ipqc3CCDResultList = new ArrayList();
+            ArrayList ipqcCCDResultList = new ArrayList();
+            ArrayList ipqc1TMXItemList = new ArrayList();//現場人員
+            ArrayList ipqc1CCDItemList = new ArrayList();//現場人員
+            ArrayList ipqc1OtherItemList = new ArrayList();//現場人員
+            ArrayList ipqc2TMXItemList = new ArrayList();//現場人員
+            ArrayList ipqc2CCDItemList = new ArrayList();//現場人員
+            ArrayList ipqc3TMXItemList = new ArrayList();//現場人員
+            ArrayList ipqc3CCDItemList = new ArrayList();//現場人員
+            ArrayList pqcTMXItemList = new ArrayList();//品檢人員
+            ArrayList pqcCCDItemList = new ArrayList();//品檢人員
+            //ArrayList pqcOtherItemList = new ArrayList();//品檢人員
             ArrayList pqcItemList = new ArrayList();//品檢人員            
             float[] rdEM3000float = new float[2];//工件一量測數據暫存器
             float[] rdEM4000float = new float[2];//工件二量測數據暫存器
             float[] rdEM5000float = new float[2];//工件三量測數據暫存器
+            float[] rdEM6000float = new float[2];//CCD內徑量測數據暫存器
             string itemNumber = "";//產品品號
             string maxFormNumber = ""; //產品品號的表單號碼最大值
             string productLineId = "";//生產線別
@@ -44,21 +60,26 @@ namespace cs_dll_sample
             string qcId ="";//主鍵
             string employeeID = "";//員工工號
             //string predictQty = "";//預計產量
-            string ZF50YearStr = "";//年
-            string ZF60MonthStr = "";//月
-            string ZF70DayStr = "";//日
+            //string ZF50YearStr = "";//年
+            //string ZF60MonthStr = "";//月
+            //string ZF70DayStr = "";//日
             string firstItemDate = "";//首件日期(格式:年-月-日)
             string ZF0 = "";//1→現場人員 or 2→品檢人員
             string ZF4 = ""; //1→OP1 or 2→OP2
-            string ZF8 = "";//量測數據完成信號(1→三個工件都完成)
+            //string ZF8 = "";//量測數據完成信號(1→三個工件都完成)
             string ZF10 = "";//(預留)
+            string ZF16 = "";//工件一量測數據OK or NG信號
+            string ZF18 = "";//工件二量測數據OK or NG信號
+            string ZF20 = "";//工件三量測數據OK or NG信號
             string ZF16ipqc1 = "";//工件一量測數據信號(1→OK;2→NG)
             string ZF18ipqc2 = "";//工件二量測數據信號(1→OK;2→NG)
             string ZF20ipqc3 = "";//工件三量測數據信號(1→OK;2→NG)
+            string ZF24CCD = "";//CCD內徑量測數據信號(1→OK;2→NG)
             string mo = "";//製令單別
             string mn = "";//製令單號
             string defective = "不合格";//判定結果
-            int insIpqc1RowsAffected = 0;
+            int insIpqc1TMXRowsAffected = 0;
+            int insIpqc1CCDRowsAffected = 0;
             int updIpqc2RowsAffected = 0;
             int updIpqc3RowsAffected = 0;
             int updPqc1RowsAffected = 0;
@@ -206,6 +227,33 @@ namespace cs_dll_sample
                 Console.WriteLine(value);
             }
 
+            //讀CCD內徑量測數據暫存器
+            Console.WriteLine("讀CCD內徑量測數據暫存器(EM6000~EM6002)");
+            for (uint i = 0; i < 3; i += 2)
+            {
+                err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 6000 + i, 2, readBuf);
+                if (err != 0)
+                {
+                    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                    Console.WriteLine("PLC連線發生異常");
+                    Console.WriteLine(err);
+                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+                    return;
+                }
+                KHST.ByteToFloat(ref rdEM6000float, readBuf, 2, 0);
+                if (rdEM6000float[0] == 0)
+                {
+                    break;
+                }
+                //將rdEM6000float[0]的值存到ArrayList
+                ipqcCCDResultList.Add(rdEM6000float[0]);
+            }
+            Console.WriteLine("Result ipqcCCDResultList List:");
+            foreach (float value in ipqcCCDResultList)
+            {
+                Console.WriteLine(value);
+            }
+
             //讀現場人員 or 品檢人員(ZF0)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 0, 1, readBuf);
             if (err != 0)
@@ -217,12 +265,23 @@ namespace cs_dll_sample
                 return;
             }
             Console.WriteLine("讀現場人員 or 品檢人員(ZF0)");
-            int[] rdZF0Str = new int[2];
-            KHST.ByteToInt(ref rdZF0Str, readBuf, 2, 0);
-            ZF0= rdZF0Str[0].ToString();
-            Console.WriteLine("\tZF0:{0}", ZF0);
-            //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF0:{0}", rdZF0Str[0]);
-
+            //int[] rdZF0Str = new int[2];
+            //KHST.ByteToInt(ref rdZF0Str, readBuf, 2, 0);
+            //ZF0= rdZF0Str[0].ToString();
+            //Console.WriteLine("\tZF0:{0}", ZF0);
+            //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF0:{0}", readBuf[i]);
+            byte[] rdZF0Str = new byte[2];
+            KHST.ByteToString(ref rdZF0Str, readBuf, 1, 0, 2);
+            //Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF0Str));
+            ZF0 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF0Str);
+            //Console.WriteLine("ZF0:" + ZF0);
+            int ZF0CharIndex = ZF0.IndexOf('\0');
+            if (ZF0CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF0 = ZF0.Substring(0, ZF0CharIndex);
+                Console.WriteLine("ZF0: " + ZF0);
+            }
             //OP1 or OP2(ZF4)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 4, 1, readBuf);
             if (err != 0)
@@ -234,10 +293,22 @@ namespace cs_dll_sample
                 return;
             }
             Console.WriteLine("讀OP1 or OP2(ZF4)");
-            int[] rdZF4Str = new int[2];
-            KHST.ByteToInt(ref rdZF4Str, readBuf, 2, 0);
-            ZF4 = rdZF4Str[0].ToString();
-            Console.WriteLine("\tZF4:{0}", ZF4);
+            //uint[] rdZF4Str = new uint[1];
+            //KHST.ByteToUint(ref rdZF4Str, readBuf, 1, 0);
+            //ZF4 = rdZF4Str[0].ToString();
+            //Console.WriteLine("\tZF4:{0}", ZF4);
+            byte[] rdZF4Str = new byte[2];
+            KHST.ByteToString(ref rdZF4Str, readBuf, 1, 0, 2);
+            //Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF4Str));
+            ZF4 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF4Str);
+            //Console.WriteLine("ZF4:" + ZF4);
+            int ZF4CharIndex = ZF4.IndexOf('\0');
+            if (ZF4CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF4 = ZF4.Substring(0, ZF4CharIndex);
+                Console.WriteLine("ZF4: " + ZF4);
+            }
             if (!ZF4.Equals(""))
             {
                 if (ZF4.Equals("1"))//表OP1
@@ -268,21 +339,32 @@ namespace cs_dll_sample
             //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF4:{0}", rdZF4Str[i]);
 
             //量測數據完成信號(ZF8)
-            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 8, 1, readBuf);
-            if (err != 0)
-            {
-                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
-                Console.WriteLine("PLC連線發生異常");
-                Console.WriteLine(err);
-                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
-                return;
-            }
-            Console.WriteLine("讀量測數據完成信號(ZF8)");
-            int[] rdZF8Str = new int[2];
-            KHST.ByteToInt(ref rdZF8Str, readBuf, 2, 0);
-            ZF8 = rdZF8Str[0].ToString();
-            Console.WriteLine("\tZF8:{0}", ZF8);
-            //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF8:{0}", rdZF8Str[i]);
+            //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 8, 1, readBuf);
+            //if (err != 0)
+            //{
+            //    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+            //    Console.WriteLine("PLC連線發生異常");
+            //    Console.WriteLine(err);
+            //    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+            //    return;
+            //}
+            //Console.WriteLine("讀量測數據完成信號(ZF8)");
+            ////int[] rdZF8Str = new int[2];
+            ////KHST.ByteToInt(ref rdZF8Str, readBuf, 2, 0);
+            ////ZF8 = rdZF8Str[0].ToString();
+            ////Console.WriteLine("\tZF8:{0}", ZF8);
+            ////for (int i = 0; i < 1; i++) Console.WriteLine("\tZF8:{0}", rdZF8Str[i]);
+            //byte[] rdZF8Str = new byte[2];
+            //KHST.ByteToString(ref rdZF8Str, readBuf, 1, 0, 2);
+            ////Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF8Str));
+            //ZF8 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF8Str);            
+            //int ZF8CharIndex = ZF8.IndexOf('\0');
+            //if (ZF8CharIndex != -1)
+            //{
+            //    // 提取 '\0' 之前的字符串
+            //    ZF8 = ZF8.Substring(0, ZF8CharIndex);             
+            //}
+            //Console.WriteLine("ZF8:" + ZF8);
 
             //工件一量測數據OK or NG信號(ZF16)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 16, 1, readBuf);
@@ -295,11 +377,21 @@ namespace cs_dll_sample
                 return;
             }
             Console.WriteLine("讀工件一量測數據OK or NG信號(ZF16)");
-            int[] rdZF16Str = new int[2];
-            KHST.ByteToInt(ref rdZF16Str, readBuf, 2, 0);
-            ZF16ipqc1 = rdZF16Str[0].ToString();
-            Console.WriteLine("\tZF16:{0}", ZF16ipqc1);
+            //int[] rdZF16Str = new int[2];
+            //KHST.ByteToInt(ref rdZF16Str, readBuf, 2, 0);
+            //ZF16ipqc1 = rdZF16Str[0].ToString();
+            //Console.WriteLine("\tZF16:{0}", ZF16ipqc1);
             //for (int i = 0; i < 2; i++) Console.WriteLine("\tZF16:{0}", rdZF16Str[1]);
+            byte[] rdZF16Str = new byte[2];
+            KHST.ByteToString(ref rdZF16Str, readBuf, 1, 0, 2);
+            ZF16ipqc1 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF16Str);            
+            int ZF16CharIndex = ZF16ipqc1.IndexOf('\0');
+            if (ZF16CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF16ipqc1 = ZF16ipqc1.Substring(0, ZF16CharIndex);
+            }
+            Console.WriteLine("ZF16ipqc1:" + ZF16ipqc1);
 
             //工件二量測數據OK or NG信號(ZF18)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 18, 1, readBuf);
@@ -312,11 +404,22 @@ namespace cs_dll_sample
                 return;
             }
             Console.WriteLine("讀工件二量測數據OK or NG信號(ZF18)");
-            int[] rdZF18Str = new int[2];
-            KHST.ByteToInt(ref rdZF18Str, readBuf, 2, 0);
-            ZF18ipqc2 = rdZF18Str[0].ToString();
-            Console.WriteLine("\tZF18:{0}", ZF18ipqc2);
+            //int[] rdZF18Str = new int[2];
+            //KHST.ByteToInt(ref rdZF18Str, readBuf, 2, 0);
+            //ZF18ipqc2 = rdZF18Str[0].ToString();
+            //Console.WriteLine("\tZF18:{0}", ZF18ipqc2);
             //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF18:{0}", rdZF18Str[i]);
+            byte[] rdZF18Str = new byte[2];
+            KHST.ByteToString(ref rdZF18Str, readBuf, 1, 0, 2);
+            //Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF18Str));
+            ZF18ipqc2 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF18Str);                        
+            int ZF18CharIndex = ZF18ipqc2.IndexOf('\0');
+            if (ZF18CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF18ipqc2 = ZF18ipqc2.Substring(0, ZF18CharIndex);
+            }
+            Console.WriteLine("ZF18ipqc2:" + ZF18ipqc2);
 
             //工件三量測數據OK or NG信號(ZF20)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 20, 1, readBuf);
@@ -329,11 +432,52 @@ namespace cs_dll_sample
                 return;
             }
             Console.WriteLine("讀工件三量測數據OK or NG信號(ZF20)");
-            int[] rdZF20Str = new int[2];
-            KHST.ByteToInt(ref rdZF20Str, readBuf, 2, 0);
-            ZF20ipqc3 = rdZF20Str[0].ToString();
-            Console.WriteLine("\tZF20:{0}", ZF20ipqc3);
+            //int[] rdZF20Str = new int[2];
+            //KHST.ByteToInt(ref rdZF20Str, readBuf, 2, 0);
+            //ZF20ipqc3 = rdZF20Str[0].ToString();
+            //Console.WriteLine("\tZF20:{0}", ZF20ipqc3);
             //for (int i = 0; i < 1; i++) Console.WriteLine("\tZF20:{0}", rdZF20Str[0]);
+            byte[] rdZF20Str = new byte[2];
+            KHST.ByteToString(ref rdZF20Str, readBuf, 1, 0, 2);
+            //Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF20Str));
+            ZF20ipqc3 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF20Str);
+            int ZF20CharIndex = ZF20ipqc3.IndexOf('\0');
+            if (ZF20CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF20ipqc3 = ZF20ipqc3.Substring(0, ZF20CharIndex);
+            }
+            Console.WriteLine("ZF20ipqc3:" + ZF20ipqc3);
+
+            //CCD內徑量測數據OK or NG信號(ZF24)
+            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 24, 1, readBuf);
+            if (err != 0)
+            {
+                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                Console.WriteLine("PLC連線發生異常");
+                Console.WriteLine(err);
+                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+                return;
+            }
+            Console.WriteLine("讀CCD內徑量測數據OK or NG信號(ZF24)");
+            //int[] rdZF22Str = new int[2];
+            //KHST.ByteToInt(ref rdZF22Str, readBuf, 2, 0);
+            //ZF22CCD = rdZF22Str[0].ToString();
+            //Console.WriteLine("\tZF22:{0}", ZF22CCD);
+            byte[] rdZF22Str = new byte[2];
+            KHST.ByteToString(ref rdZF22Str, readBuf, 1, 0, 2);
+            //Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF22Str));
+            ZF24CCD = System.Text.Encoding.GetEncoding(65001).GetString(rdZF22Str);
+            
+            //ZF4 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF4Str);
+            //Console.WriteLine("ZF4:" + ZF4);
+            int ZF24CharIndex = ZF24CCD.IndexOf('\0');
+            if (ZF24CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF24CCD = ZF24CCD.Substring(0, ZF24CharIndex);
+            }
+            Console.WriteLine("ZF24CCD:" + ZF24CCD);
 
             //首件日期-年(ZF50)
             //err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 50, 2, readBuf);
@@ -460,10 +604,11 @@ namespace cs_dll_sample
             employeeID = System.Text.Encoding.GetEncoding(65001).GetString(rdZF40Str);
             Console.WriteLine(employeeID);
 
+
             //ZF18ipqc2 = "1";
             //ZF20ipqc3 = "2";
             //ZF0 = "1";
-
+            mn = "23122700008";
             try
             {
                 connection = new SqlConnection(connectionString);
@@ -473,9 +618,9 @@ namespace cs_dll_sample
                 
                 if (ZF0!=null&& !ZF0.Equals("")&&ZF0.Equals("1"))//1→現場人員
                 {
-                    if(!ZF16ipqc1.Equals("") && ZF16ipqc1.Equals("1") && !ZF18ipqc2.Equals("") && ZF18ipqc2.Equals("1")
-                        && !ZF20ipqc3.Equals("") && ZF20ipqc3.Equals("1"))
-                    {
+                    //if(!ZF16ipqc1.Equals("") && ZF16ipqc1.Equals("1") && !ZF18ipqc2.Equals("") && ZF18ipqc2.Equals("1")
+                    //    && !ZF20ipqc3.Equals("") && ZF20ipqc3.Equals("1"))
+                    //{
                         //取製程代號
                         string processCodeQuery = "select TA004 from " + DBName + ".dbo.SFCTA where TA001='" + mo + "' and TA002 ='" + mn + "'";
                         using (SqlCommand processCodeQuerycommand = new SqlCommand(processCodeQuery, connection))
@@ -561,46 +706,115 @@ namespace cs_dll_sample
                                         }
                                     }
 
-                                    //找首件/自主檢查項目
-                                    String getIpqc = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                    //找首件/自主檢查項目(TMX)
+                                    String getIpqcTMX = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
                                          + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='TMX' order by JYT012b003 asc";
-                                    using (SqlCommand getIpqccommand = new SqlCommand(getIpqc, connection))
+                                    using (SqlCommand getIpqcTMXcommand = new SqlCommand(getIpqcTMX, connection))
                                     {
-                                        using (SqlDataReader getIpqcreader = getIpqccommand.ExecuteReader())
+                                        using (SqlDataReader getIpqcTMXreader = getIpqcTMXcommand.ExecuteReader())
                                         {
-                                            while (getIpqcreader.Read())
+                                            while (getIpqcTMXreader.Read())
                                             {
                                                 IpqcItem item = new IpqcItem();
-                                                item.JYT012b003 = getIpqcreader["JYT012b003"].ToString();
-                                                item.JYT012b005 = getIpqcreader["JYT012b005"].ToString();
-                                                item.JYT012b006 = getIpqcreader["JYT012b006"].ToString();
-                                                item.JYT012b007 = getIpqcreader["JYT012b007"].ToString();
-                                                item.JYT012b008 = getIpqcreader["JYT012b008"].ToString();
-                                                item.JYT012b009 = getIpqcreader["JYT012b009"].ToString();
-                                                item.JYT012b010 = getIpqcreader["JYT012b010"].ToString();
-                                                item.UDF03 = getIpqcreader["UDF03"].ToString();
-
-                                                // 將 IpqcItem 物件添加到 ArrayList 中
-                                                ipqcItemList.Add(item);
+                                                item.JYT012b003 = getIpqcTMXreader["JYT012b003"].ToString();
+                                                item.JYT012b005 = getIpqcTMXreader["JYT012b005"].ToString();
+                                                item.JYT012b006 = getIpqcTMXreader["JYT012b006"].ToString();
+                                                item.JYT012b007 = getIpqcTMXreader["JYT012b007"].ToString();
+                                                item.JYT012b008 = getIpqcTMXreader["JYT012b008"].ToString();
+                                                item.JYT012b009 = getIpqcTMXreader["JYT012b009"].ToString();
+                                                item.JYT012b010 = getIpqcTMXreader["JYT012b010"].ToString();
+                                                item.UDF03 = getIpqcTMXreader["UDF03"].ToString();
+                                                
+                                                ipqc1TMXItemList.Add(item);
                                             }
-                                            getIpqcreader.Close();
+                                            getIpqcTMXreader.Close();
                                         }
                                     }
-                                    if (ipqcItemList.Count > 0)
+                                    //找首件/自主檢查項目(CCD)
+                                    String getIpqcCCD = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                        + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='CCD' order by JYT012b003 asc";
+                                    using (SqlCommand getIpqcCCDcommand = new SqlCommand(getIpqcCCD, connection))
                                     {
-                                        if (!ipqc1ResultList.Count.Equals(ipqcItemList.Count))
+                                        using (SqlDataReader getIpqcCCDreader = getIpqcCCDcommand.ExecuteReader())
                                         {
-                                            result = MessageBox.Show("DSS資料與影像量測儀兩者檢測數據筆數不一致，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                            Console.WriteLine("DSS資料與影像量測儀兩者檢測數據筆數不一致");
-                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀兩者檢測數據筆數不一致，操作失敗", "警告", "");
+                                            while (getIpqcCCDreader.Read())
+                                            {
+                                                IpqcItem item = new IpqcItem();
+                                                item.JYT012b003 = getIpqcCCDreader["JYT012b003"].ToString();
+                                                item.JYT012b005 = getIpqcCCDreader["JYT012b005"].ToString();
+                                                item.JYT012b006 = getIpqcCCDreader["JYT012b006"].ToString();
+                                                item.JYT012b007 = getIpqcCCDreader["JYT012b007"].ToString();
+                                                item.JYT012b008 = getIpqcCCDreader["JYT012b008"].ToString();
+                                                item.JYT012b009 = getIpqcCCDreader["JYT012b009"].ToString();
+                                                item.JYT012b010 = getIpqcCCDreader["JYT012b010"].ToString();
+                                                item.UDF03 = getIpqcCCDreader["UDF03"].ToString();
+
+                                                // 將 IpqcItem 物件添加到 ArrayList 中
+                                                ipqc1CCDItemList.Add(item);
+                                            }
+                                            getIpqcCCDreader.Close();
+                                        }
+                                    }
+                                    //找首件/自主檢查項目(剩餘項目)                                    
+                                    String getIpqcOther = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                        + " and JYT012a002='" + maxFormNumber + "' and (UPPER(JYT012b010) != 'TMX' or UPPER(JYT012b010) != 'CCD') order by JYT012b003 asc";
+                                    using (SqlCommand getIpqcOthercommand = new SqlCommand(getIpqcOther, connection))
+                                    {
+                                        using (SqlDataReader getIpqcOtherreader = getIpqcOthercommand.ExecuteReader())
+                                        {
+                                            while (getIpqcOtherreader.Read())
+                                            {
+                                                IpqcItem item = new IpqcItem();
+                                                item.JYT012b003 = getIpqcOtherreader["JYT012b003"].ToString();
+                                                item.JYT012b005 = getIpqcOtherreader["JYT012b005"].ToString();
+                                                item.JYT012b006 = getIpqcOtherreader["JYT012b006"].ToString();
+                                                item.JYT012b007 = getIpqcOtherreader["JYT012b007"].ToString();
+                                                item.JYT012b008 = getIpqcOtherreader["JYT012b008"].ToString();
+                                                item.JYT012b009 = getIpqcOtherreader["JYT012b009"].ToString();
+                                                item.JYT012b010 = getIpqcOtherreader["JYT012b010"].ToString();
+                                                item.UDF03 = getIpqcOtherreader["UDF03"].ToString();
+
+                                                // 將 IpqcItem 物件添加到 ArrayList 中
+                                                ipqc1OtherItemList.Add(item);
+                                            }
+                                        getIpqcOtherreader.Close();
+                                        }
+                                    }
+
+                                    //比對筆數
+                                    if (ipqc1TMXItemList.Count > 0 && ipqc1CCDItemList.Count>0)
+                                    {
+                                        if (!ipqc1ResultList.Count.Equals(ipqc1TMXItemList.Count+ ipqc1CCDItemList.Count))
+                                        {
+                                            result = MessageBox.Show("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，現場人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                            Console.WriteLine("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，現場人員操作失敗");
+                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，現場人員操作失敗", "警告", "");
                                             return;
+                                        }else if(ipqc1TMXItemList.Count > 0)
+                                        {
+                                         if (!ipqc1ResultList.Count.Equals(ipqc1TMXItemList.Count))
+                                         {
+                                            result = MessageBox.Show("DSS資料與影像量測儀兩者檢測數據筆數不一致，現場人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                            Console.WriteLine("DSS資料與影像量測儀兩者檢測數據筆數不一致，現場人員操作失敗");
+                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀兩者檢測數據筆數不一致，現場人員操作失敗", "警告", "");
+                                            return;
+                                          }
+                                        }else if (ipqc1CCDItemList.Count > 0)
+                                        {
+                                         if (!ipqc1ResultList.Count.Equals(ipqc1CCDItemList.Count))
+                                         {
+                                            result = MessageBox.Show("DSS資料與CCD兩者檢測數據筆數不一致，現場人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                            Console.WriteLine("DSS資料與CCD兩者檢測數據筆數不一致，現場人員操作失敗");
+                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與CCD兩者檢測數據筆數不一致，現場人員操作失敗", "警告", "");
+                                            return;
+                                         }
                                         }
                                     }
                                     else
                                     {
-                                        result = MessageBox.Show("在DSS系統找不到資料，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                        Console.WriteLine("在DSS系統找不到資料");
-                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "在DSS系統找不到資料，操作失敗", "警告", "");
+                                        result = MessageBox.Show("在DSS系統找不到資料，現場人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                        Console.WriteLine("在DSS系統找不到資料，現場人員操作失敗");
+                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "在DSS系統找不到資料，現場人員操作失敗", "警告", "");
                                         return;
                                     }
 
@@ -661,26 +875,27 @@ namespace cs_dll_sample
                                         Console.WriteLine("qcId: " + qcId);                                       
                                     }
 
-                                    for (int i = 0; i < ipqcItemList.Count; i++)
+                                    //寫現場人員TMX檢驗記錄(ipqc1)
+                                    for (int i = 0; i < ipqc1TMXItemList.Count; i++)
                                     {
-                                        IpqcItem itemList = (IpqcItem)ipqcItemList[i];
+                                        IpqcItem itemList = (IpqcItem)ipqc1TMXItemList[i];
                                         //找首件/自主檢查項目
-                                        String getIpqcData = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                        String getIpqcTMXData = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
                                         + " and JYT012a002='" + maxFormNumber + "' and JYT012b003='" + itemList.JYT012b003 + "' and  UPPER(JYT012b010)='TMX'";
-                                        using (SqlCommand getIpqcDatacommand = new SqlCommand(getIpqcData, connection))
+                                        using (SqlCommand getIpqcTMXDatacommand = new SqlCommand(getIpqcTMXData, connection))
                                         {
-                                            using (SqlDataReader getIpqcDatareader = getIpqcDatacommand.ExecuteReader())
+                                            using (SqlDataReader getIpqcTMXDatareader = getIpqcTMXDatacommand.ExecuteReader())
                                             {
-                                                if (getIpqcDatareader.Read())
+                                                if (getIpqcTMXDatareader.Read())
                                                 {
-                                                    primumQCData.JYT012b003 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b003"));
-                                                    primumQCData.JYT012b005 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b005"));
-                                                    primumQCData.JYT012b006 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b006"));
-                                                    primumQCData.JYT012b007 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b007"));
-                                                    primumQCData.JYT012b008 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b008"));
-                                                    primumQCData.JYT012b009 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b009"));
-                                                    primumQCData.JYT012b010 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("JYT012b010"));
-                                                    primumQCData.UDF03 = getIpqcDatareader.GetString(getIpqcDatareader.GetOrdinal("UDF03"));
+                                                    primumQCData.JYT012b003 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b003"));
+                                                    primumQCData.JYT012b005 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b005"));
+                                                    primumQCData.JYT012b006 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b006"));
+                                                    primumQCData.JYT012b007 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b007"));
+                                                    primumQCData.JYT012b008 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b008"));
+                                                    primumQCData.JYT012b009 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b009"));
+                                                    primumQCData.JYT012b010 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("JYT012b010"));
+                                                    primumQCData.UDF03 = getIpqcTMXDatareader.GetString(getIpqcTMXDatareader.GetOrdinal("UDF03"));
                                                 }
                                                 else
                                                 {
@@ -689,11 +904,11 @@ namespace cs_dll_sample
                                                     KvHostLinkLog(employeeID, mo, mn, itemNumber, "找不到首件/自主檢查項目的資料，寫入資料失敗", "警告", "");
                                                     return;
                                                 }
-                                                getIpqcDatareader.Close();
+                                                getIpqcTMXDatareader.Close();
                                             }
 
-                                            //insert首件/自主檢查記錄實測狀況(ipqc1)
-                                            String insIpqc1Data = "INSERT INTO " + DBName + ".dbo.QCDataCollectionContent(qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit," +
+                                            //insert TMX首件/自主檢查記錄實測狀況(ipqc1)
+                                            String insIpqc1TMXData = "INSERT INTO " + DBName + ".dbo.QCDataCollectionContent(qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit," +
                                                      "testTool,flag,ipqc1,ipqcCREATOR)" +
                                                      " VALUES (@qc_id,@itemSN,@testItem,@testUnit,@standardValue,@upperLimit,@lowerLimit,@testTool,@flag," +
                                                      "@ipqc1,@ipqcCREATOR)";
@@ -711,46 +926,245 @@ namespace cs_dll_sample
                                                 new SqlParameter("@ipqc1", ipqc1ResultList[i]),
                                                 new SqlParameter("@ipqcCREATOR", "")
                                             };
-                                            using (SqlCommand insIpqc1Datacommand = new SqlCommand(insIpqc1Data, connection))
+                                            using (SqlCommand insIpqc1TMXDatacommand = new SqlCommand(insIpqc1TMXData, connection))
                                             {
                                                 // 設定參數
-                                                insIpqc1Datacommand.Parameters.AddRange(QCDataCollectionContentparameters);
+                                                insIpqc1TMXDatacommand.Parameters.AddRange(QCDataCollectionContentparameters);
                                                 // 執行 INSERT 操作
-                                                insIpqc1RowsAffected = insIpqc1Datacommand.ExecuteNonQuery();
+                                                insIpqc1TMXRowsAffected = insIpqc1TMXDatacommand.ExecuteNonQuery();
                                             }
                                         }
                                     }
 
-                                    //update首件/自主檢查記錄實測狀況(ipqc2)
-                                    for (int j = 0; j < ipqcItemList.Count; j++)
+                                    //寫現場人員CCD檢驗記錄(ipqc1)
+                                    for (int i = 0; i < ipqc1CCDItemList.Count; i++)
                                     {
-                                        IpqcItem itemList = (IpqcItem)ipqcItemList[j];
-                                        String updIpqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc2=@ipqc2"
-                                             + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
-                                        using (SqlCommand updIpqc2Datacommand = new SqlCommand(updIpqc2Data, connection))
+                                        IpqcItem itemList = (IpqcItem)ipqc1CCDItemList[i];
+                                        //找首件/自主檢查項目
+                                        String getIpqc1CCDData = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                        + " and JYT012a002='" + maxFormNumber + "' and JYT012b003='" + itemList.JYT012b003 + "' and  UPPER(JYT012b010)='CCD'";
+                                        using (SqlCommand getIpqc1CCDDatacommand = new SqlCommand(getIpqc1CCDData, connection))
                                         {
-                                            updIpqc2Datacommand.Parameters.AddWithValue("@ipqc2", ipqc2ResultList[j]);
-                                            int updIpqc2Rows = updIpqc2Datacommand.ExecuteNonQuery();
-                                            updIpqc2RowsAffected = updIpqc2RowsAffected + updIpqc2Rows;
+                                            using (SqlDataReader getIpqc1CCDDatareader = getIpqc1CCDDatacommand.ExecuteReader())
+                                            {
+                                                if (getIpqc1CCDDatareader.Read())
+                                                {
+                                                    primumQCData.JYT012b003 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b003"));
+                                                    primumQCData.JYT012b005 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b005"));
+                                                    primumQCData.JYT012b006 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b006"));
+                                                    primumQCData.JYT012b007 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b007"));
+                                                    primumQCData.JYT012b008 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b008"));
+                                                    primumQCData.JYT012b009 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b009"));
+                                                    primumQCData.JYT012b010 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("JYT012b010"));
+                                                    primumQCData.UDF03 = getIpqc1CCDDatareader.GetString(getIpqc1CCDDatareader.GetOrdinal("UDF03"));
+                                                }
+                                                else
+                                                {
+                                                    result = MessageBox.Show("找不到首件/自主檢查項目的資料，寫入資料失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                    Console.WriteLine("找不到首件/自主檢查項目的資料");
+                                                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "找不到首件/自主檢查項目的資料，寫入資料失敗", "警告", "");
+                                                    return;
+                                                }
+                                                getIpqc1CCDDatareader.Close();
+                                            }
+
+                                            //insert CCD首件/自主檢查記錄實測狀況(ipqc1)
+                                            String insIpqc1CCDData = "INSERT INTO " + DBName + ".dbo.QCDataCollectionContent(qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit," +
+                                                     "testTool,flag,ipqc1,ipqcCREATOR)" +
+                                                     " VALUES (@qc_id,@itemSN,@testItem,@testUnit,@standardValue,@upperLimit,@lowerLimit,@testTool,@flag," +
+                                                     "@ipqc1,@ipqcCREATOR)";
+                                            // 資料參數
+                                            SqlParameter[] QCDataCollectionContentparameters = {
+                                                new SqlParameter("@qc_id", qcId),
+                                                new SqlParameter("@itemSN", primumQCData.JYT012b003),
+                                                new SqlParameter("@testItem", primumQCData.JYT012b005),
+                                                new SqlParameter("@testUnit", primumQCData.JYT012b006),
+                                                new SqlParameter("@standardValue", primumQCData.JYT012b007),
+                                                new SqlParameter("@upperLimit", primumQCData.JYT012b008),
+                                                new SqlParameter("@lowerLimit", primumQCData.JYT012b009),
+                                                new SqlParameter("@testTool", primumQCData.JYT012b010),
+                                                new SqlParameter("@flag", primumQCData.UDF03),
+                                                new SqlParameter("@ipqc1", ipqc1ResultList[i]),
+                                                new SqlParameter("@ipqcCREATOR", "")
+                                            };
+                                            using (SqlCommand insIpqc1CCDDatacommand = new SqlCommand(insIpqc1CCDData, connection))
+                                            {
+                                                // 設定參數
+                                                insIpqc1CCDDatacommand.Parameters.AddRange(QCDataCollectionContentparameters);
+                                                // 執行 INSERT 操作
+                                                insIpqc1CCDRowsAffected = insIpqc1CCDDatacommand.ExecuteNonQuery();
+                                            }
+                                        }
+                                    }                                
+                            
+                                    //update TMX首件/自主檢查記錄實測狀況(ipqc2)
+                                    if (ipqc2TMXResultList.Count > 0)
+                                    {
+                                        //找TMX首件/自主檢查項目
+                                        String getIpqc2 = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                            + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='TMX' order by JYT012b003 asc";
+                                        using (SqlCommand getIpq2ccommand = new SqlCommand(getIpqc2, connection))
+                                        {
+                                            using (SqlDataReader getIpqc2reader = getIpq2ccommand.ExecuteReader())
+                                            {
+                                                while (getIpqc2reader.Read())
+                                                {
+                                                    IpqcItem item = new IpqcItem();
+                                                    item.JYT012b003 = getIpqc2reader["JYT012b003"].ToString();
+                                                    item.JYT012b005 = getIpqc2reader["JYT012b005"].ToString();
+                                                    item.JYT012b006 = getIpqc2reader["JYT012b006"].ToString();
+                                                    item.JYT012b007 = getIpqc2reader["JYT012b007"].ToString();
+                                                    item.JYT012b008 = getIpqc2reader["JYT012b008"].ToString();
+                                                    item.JYT012b009 = getIpqc2reader["JYT012b009"].ToString();
+                                                    item.JYT012b010 = getIpqc2reader["JYT012b010"].ToString();
+                                                    item.UDF03 = getIpqc2reader["UDF03"].ToString();
+
+                                                    // 將 IpqcItem 物件添加到 ArrayList 中
+                                                    ipqc2TMXItemList.Add(item);
+                                                }
+                                                getIpqc2reader.Close();
+                                            }
+                                        }
+                                        for (int j = 0; j < ipqc2TMXItemList.Count; j++)
+                                        {
+                                           IpqcItem itemList = (IpqcItem)ipqc2TMXItemList[j];
+                                           String updIpqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc2=@ipqc2"
+                                               + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                           using (SqlCommand updIpqc2Datacommand = new SqlCommand(updIpqc2Data, connection))
+                                           {
+                                               updIpqc2Datacommand.Parameters.AddWithValue("@ipqc2", ipqc2TMXResultList[j]);
+                                               int updIpqc2Rows = updIpqc2Datacommand.ExecuteNonQuery();
+                                               updIpqc2RowsAffected = updIpqc2RowsAffected + updIpqc2Rows;
+                                           }
                                         }
                                     }
 
-                                    //update首件/自主檢查記錄實測狀況(ipqc3)
-                                    for (int k = 0; k < ipqcItemList.Count; k++)
-                                    {
-                                        IpqcItem itemList = (IpqcItem)ipqcItemList[k];
-                                        String updIpqc3Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc3=@ipqc3"
-                                             + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
-                                        using (SqlCommand updIpqc3Datacommand = new SqlCommand(updIpqc3Data, connection))
+                                    //update CCD首件/自主檢查記錄實測狀況(ipqc2)
+                                     if (ipqc2CCDResultList.Count > 0)
+                                     {
+                                        //找TMX首件/自主檢查項目
+                                        String getIpqc2CCD = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                            + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='CCD' order by JYT012b003 asc";
+                                        using (SqlCommand getIpqc2CCDcommand = new SqlCommand(getIpqc2CCD, connection))
                                         {
-                                            updIpqc3Datacommand.Parameters.AddWithValue("@ipqc3", ipqc3ResultList[k]);
-                                            int updIpqc3Rows = updIpqc3Datacommand.ExecuteNonQuery();
-                                            updIpqc3RowsAffected = updIpqc3RowsAffected + updIpqc3Rows;
+                                            using (SqlDataReader getIpqc2CCDreader = getIpqc2CCDcommand.ExecuteReader())
+                                            {
+                                                while (getIpqc2CCDreader.Read())
+                                                {
+                                                    IpqcItem item = new IpqcItem();
+                                                    item.JYT012b003 = getIpqc2CCDreader["JYT012b003"].ToString();
+                                                    item.JYT012b005 = getIpqc2CCDreader["JYT012b005"].ToString();
+                                                    item.JYT012b006 = getIpqc2CCDreader["JYT012b006"].ToString();
+                                                    item.JYT012b007 = getIpqc2CCDreader["JYT012b007"].ToString();
+                                                    item.JYT012b008 = getIpqc2CCDreader["JYT012b008"].ToString();
+                                                    item.JYT012b009 = getIpqc2CCDreader["JYT012b009"].ToString();
+                                                    item.JYT012b010 = getIpqc2CCDreader["JYT012b010"].ToString();
+                                                    item.UDF03 = getIpqc2CCDreader["UDF03"].ToString();
+
+                                                    // 將 IpqcItem 物件添加到 ArrayList 中
+                                                    ipqc2CCDItemList.Add(item);
+                                                }
+                                                getIpqc2CCDreader.Close();
+                                            }
+                                        }
+                                        for (int j = 0; j < ipqc2CCDItemList.Count; j++)
+                                        {
+                                            IpqcItem itemList = (IpqcItem)ipqc2CCDItemList[j];
+                                            String updIpqc2CCDData = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc2=@ipqc2"
+                                                + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                            using (SqlCommand updIpqc2CCDDatacommand = new SqlCommand(updIpqc2CCDData, connection))
+                                            {
+                                                updIpqc2CCDDatacommand.Parameters.AddWithValue("@ipqc2", ipqc2CCDResultList[j]);
+                                                int updIpqc2Rows = updIpqc2CCDDatacommand.ExecuteNonQuery();
+                                                updIpqc2RowsAffected = updIpqc2RowsAffected + updIpqc2Rows;
+                                            }
+                                        }
+                                     }
+
+                                    //update TMX首件/自主檢查記錄實測狀況(ipqc3)
+                                    if (ipqc3TMXResultList.Count > 0)
+                                    {
+                                        //找TMX首件/自主檢查項目
+                                        String getIpqc3 = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                            + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='TMX' order by JYT012b003 asc";
+                                        using (SqlCommand getIpqc3command = new SqlCommand(getIpqc3, connection))
+                                        {
+                                            using (SqlDataReader getIpqc3reader = getIpqc3command.ExecuteReader())
+                                            {
+                                                while (getIpqc3reader.Read())
+                                                {
+                                                    IpqcItem item = new IpqcItem();
+                                                    item.JYT012b003 = getIpqc3reader["JYT012b003"].ToString();
+                                                    item.JYT012b005 = getIpqc3reader["JYT012b005"].ToString();
+                                                    item.JYT012b006 = getIpqc3reader["JYT012b006"].ToString();
+                                                    item.JYT012b007 = getIpqc3reader["JYT012b007"].ToString();
+                                                    item.JYT012b008 = getIpqc3reader["JYT012b008"].ToString();
+                                                    item.JYT012b009 = getIpqc3reader["JYT012b009"].ToString();
+                                                    item.JYT012b010 = getIpqc3reader["JYT012b010"].ToString();
+                                                    item.UDF03 = getIpqc3reader["UDF03"].ToString();
+
+                                                    // 將 IpqcItem 物件添加到 ArrayList 中
+                                                    ipqc3TMXItemList.Add(item);
+                                                }
+                                                getIpqc3reader.Close();
+                                            }
+                                        }
+                                        for (int k = 0; k < ipqc3TMXItemList.Count; k++)
+                                        {
+                                            IpqcItem itemList = (IpqcItem)ipqc3TMXItemList[k];
+                                            String updIpqc3Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc3=@ipqc3"
+                                                 + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                            using (SqlCommand updIpqc3Datacommand = new SqlCommand(updIpqc3Data, connection))
+                                            {
+                                                updIpqc3Datacommand.Parameters.AddWithValue("@ipqc3", ipqc3TMXResultList[k]);
+                                                int updIpqc3Rows = updIpqc3Datacommand.ExecuteNonQuery();
+                                                updIpqc3RowsAffected = updIpqc3RowsAffected + updIpqc3Rows;
+                                            }
                                         }
                                     }
 
+                                    //update CCD首件/自主檢查記錄實測狀況(ipqc3)
+                                    if (ipqc3CCDResultList.Count > 0)
+                                    {
+                                        //找TMX首件/自主檢查項目
+                                        String getIpqc3 = "select JYT012b003,JYT012b005,JYT012b006,JYT012b007,JYT012b008,JYT012b009,JYT012b010,UDF03 from " + DBName + ".dbo.JYT012 where JYT012a005='" + itemNumber + "'"
+                                            + " and JYT012a002='" + maxFormNumber + "' and UPPER(JYT012b010)='CCD' order by JYT012b003 asc";
+                                        using (SqlCommand getIpqc3command = new SqlCommand(getIpqc3, connection))
+                                        {
+                                            using (SqlDataReader getIpqc3reader = getIpqc3command.ExecuteReader())
+                                            {
+                                                while (getIpqc3reader.Read())
+                                                {
+                                                    IpqcItem item = new IpqcItem();
+                                                    item.JYT012b003 = getIpqc3reader["JYT012b003"].ToString();
+                                                    item.JYT012b005 = getIpqc3reader["JYT012b005"].ToString();
+                                                    item.JYT012b006 = getIpqc3reader["JYT012b006"].ToString();
+                                                    item.JYT012b007 = getIpqc3reader["JYT012b007"].ToString();
+                                                    item.JYT012b008 = getIpqc3reader["JYT012b008"].ToString();
+                                                    item.JYT012b009 = getIpqc3reader["JYT012b009"].ToString();
+                                                    item.JYT012b010 = getIpqc3reader["JYT012b010"].ToString();
+                                                    item.UDF03 = getIpqc3reader["UDF03"].ToString();
+                                                
+                                                    ipqc3CCDItemList.Add(item);
+                                                }
+                                                getIpqc3reader.Close();
+                                            }
+                                        }
+                                        for (int k = 0; k < ipqc3CCDItemList.Count; k++)
+                                        {
+                                            IpqcItem itemList = (IpqcItem)ipqc3CCDItemList[k];
+                                            String updIpqc3Data = "update " + DBName + ".dbo.QCDataCollectionContent set ipqc3=@ipqc3"
+                                                 + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                            using (SqlCommand updIpqc3Datacommand = new SqlCommand(updIpqc3Data, connection))
+                                            {
+                                                updIpqc3Datacommand.Parameters.AddWithValue("@ipqc3", ipqc3CCDResultList[k]);
+                                                int updIpqc3Rows = updIpqc3Datacommand.ExecuteNonQuery();
+                                                updIpqc3RowsAffected = updIpqc3RowsAffected + updIpqc3Rows;
+                                            }
+                                        }
+                                    }
                                     //寫上傳完成信號值"1"到ZF14暫存器(PC→PLC)
-                                    if (insIpqc1RowsAffected > 0 && updIpqc2RowsAffected > 0 && updIpqc3RowsAffected > 0)
+                                    if (insIpqc1TMXRowsAffected > 0)
                                     {
                                         int[] wzf14 = new int[1] { 1 };
                                         KHST.IntToByte(ref writeBuf, wzf14, 1, 0);
@@ -784,15 +1198,15 @@ namespace cs_dll_sample
                                     return;
                                 }
                             }
-                        }
-                    }
-                    else
-                    {
-                        result = MessageBox.Show("工件量測數據不是全部都OK，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                        Console.WriteLine("工件量測數據不是全部都OK");
-                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "工件量測數據不是全部都OK，操作失敗", "警告", "");
-                        return;
-                    }                                                     
+                }
+                    //}
+                    //else
+                    //{
+                    //    result = MessageBox.Show("工件量測數據不是全部都OK，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                    //    Console.WriteLine("工件量測數據不是全部都OK");
+                    //    KvHostLinkLog(employeeID, mo, mn, itemNumber, "工件量測數據不是全部都OK，操作失敗", "警告", "");
+                    //    return;
+                    //}                                                     
                 }
                 else if(ZF0 != null && !ZF0.Equals("") && ZF0.Equals("2"))//品檢人員
                 {
@@ -833,47 +1247,88 @@ namespace cs_dll_sample
                                             return;
                                         }
                                         getQCDataCollectionDatareader.Close();
-                                        //品檢人員找尋未檢驗的首件/自主檢查記錄詳細資料
-                                        String getQCTestData = "select qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit,testTool,flag,ipqc1,ipqc2,ipqc3 from " + DBName + ".dbo.QCDataCollectionContent where "
-                                             + "qc_id='" + qcId + "' order by itemSN asc";
-                                        using (SqlCommand getQCTestDatacommand = new SqlCommand(getQCTestData, connection))
+                                        //品檢人員找尋未檢驗的TMX首件/自主檢查記錄詳細資料
+                                        String getQCTMXTestData = "select qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit,testTool,flag,ipqc1,ipqc2,ipqc3 from " + DBName + ".dbo.QCDataCollectionContent where "
+                                             + "qc_id='" + qcId + "' and testTool='TMX' order by itemSN asc";
+                                        using (SqlCommand getQCTMXTestDatacommand = new SqlCommand(getQCTMXTestData, connection))
                                         {
-                                            using (SqlDataReader getQCTestDatareader = getQCTestDatacommand.ExecuteReader())
+                                            using (SqlDataReader getQCTMXTestDatareader = getQCTMXTestDatacommand.ExecuteReader())
                                             {
-                                                while (getQCTestDatareader.Read())
+                                                while (getQCTMXTestDatareader.Read())
                                                 {
                                                     IpqcItem item = new IpqcItem();
-                                                    item.JYT012b003 = getQCTestDatareader["itemSN"].ToString();
-                                                    item.JYT012b005 = getQCTestDatareader["testItem"].ToString();
-                                                    item.JYT012b006 = getQCTestDatareader["testUnit"].ToString();
-                                                    item.JYT012b007 = getQCTestDatareader["standardValue"].ToString();
-                                                    item.JYT012b008 = getQCTestDatareader["upperLimit"].ToString();
-                                                    item.JYT012b009 = getQCTestDatareader["lowerLimit"].ToString();
-                                                    pqcItemList.Add(item);
+                                                    item.JYT012b003 = getQCTMXTestDatareader["itemSN"].ToString();
+                                                    item.JYT012b005 = getQCTMXTestDatareader["testItem"].ToString();
+                                                    item.JYT012b006 = getQCTMXTestDatareader["testUnit"].ToString();
+                                                    item.JYT012b007 = getQCTMXTestDatareader["standardValue"].ToString();
+                                                    item.JYT012b008 = getQCTMXTestDatareader["upperLimit"].ToString();
+                                                    item.JYT012b009 = getQCTMXTestDatareader["lowerLimit"].ToString();
+                                                    pqcTMXItemList.Add(item);
                                                 }
-                                                getQCTestDatareader.Close();
+                                                getQCTMXTestDatareader.Close();
                                             }
                                         }
-                                        //確認資料筆數
-                                        if (pqcItemList.Count > 0)
+
+                                        //品檢人員找尋未檢驗的CCD首件/自主檢查記錄詳細資料
+                                        String getQCCCDTestData = "select qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit,testTool,flag,ipqc1,ipqc2,ipqc3 from " + DBName + ".dbo.QCDataCollectionContent where "
+                                             + "qc_id='" + qcId + "' and testTool='CCD' order by itemSN asc";
+                                        using (SqlCommand getQCCCDTestDatacommand = new SqlCommand(getQCCCDTestData, connection))
                                         {
-                                            if (!ipqc1ResultList.Count.Equals(pqcItemList.Count) && !ipqc2ResultList.Count.Equals(pqcItemList.Count)
-                                                && !ipqc3ResultList.Count.Equals(pqcItemList.Count))
+                                            using (SqlDataReader getQCCCDTestDatareader = getQCCCDTestDatacommand.ExecuteReader())
                                             {
-                                                result = MessageBox.Show("品檢人員作業的影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                                Console.WriteLine("品檢人員作業的影像量測儀資料與資料庫兩者檢測數據筆數不一致");
-                                                KvHostLinkLog(employeeID, mo, mn, itemNumber, "品檢人員作業的影像量測儀資料與資料庫兩者檢測數據筆數不一致，操作失敗", "警告", "");
+                                                while (getQCCCDTestDatareader.Read())
+                                                {
+                                                    IpqcItem item = new IpqcItem();
+                                                    item.JYT012b003 = getQCCCDTestDatareader["itemSN"].ToString();
+                                                    item.JYT012b005 = getQCCCDTestDatareader["testItem"].ToString();
+                                                    item.JYT012b006 = getQCCCDTestDatareader["testUnit"].ToString();
+                                                    item.JYT012b007 = getQCCCDTestDatareader["standardValue"].ToString();
+                                                    item.JYT012b008 = getQCCCDTestDatareader["upperLimit"].ToString();
+                                                    item.JYT012b009 = getQCCCDTestDatareader["lowerLimit"].ToString();
+                                                    pqcCCDItemList.Add(item);
+                                                }
+                                                getQCCCDTestDatareader.Close();
+                                            }
+                                        }
+
+                                        //確認資料筆數
+                                        if (pqcTMXItemList.Count > 0 && pqcCCDItemList.Count > 0)
+                                        {
+                                            if (!ipqc1ResultList.Count.Equals(pqcTMXItemList.Count + pqcCCDItemList.Count))
+                                            {
+                                                result = MessageBox.Show("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                Console.WriteLine("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，品檢人員操作失敗");
+                                                KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
                                                 return;
                                             }
-                                           
+                                            else if (pqcTMXItemList.Count > 0)
+                                            {
+                                                if (!ipqc1ResultList.Count.Equals(pqcTMXItemList.Count))
+                                                {
+                                                    result = MessageBox.Show("DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                    Console.WriteLine("DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗");
+                                                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
+                                                    return;
+                                                }
+                                            }
+                                            else if (pqcCCDItemList.Count > 0)
+                                            {
+                                                if (!ipqc1ResultList.Count.Equals(pqcCCDItemList.Count))
+                                                {
+                                                    result = MessageBox.Show("DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                    Console.WriteLine("DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗");
+                                                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
+                                                    return;
+                                                }
+                                            }
                                         }
                                         else
                                         {
-                                            result = MessageBox.Show("在資料庫系統找不到品檢人員待驗資料", "警告", buttons, MessageBoxIcon.Warning);
-                                            Console.WriteLine("在資料庫系統找不到品檢人員待驗資料");
-                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "在資料庫系統找不到品檢人員待驗資料", "警告", "");
+                                            result = MessageBox.Show("在DSS系統找不到資料，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                            Console.WriteLine("在DSS系統找不到資料，品檢人員操作失敗");
+                                            KvHostLinkLog(employeeID, mo, mn, itemNumber, "在DSS系統找不到資料，品檢人員操作失敗", "警告", "");
                                             return;
-                                        }
+                                        }                                       
 
                                         //寫品檢成品檢驗記錄(pqc1)
                                         for (int i = 0; i < pqcItemList.Count; i++)
@@ -890,20 +1345,31 @@ namespace cs_dll_sample
                                         }
 
                                         //寫品檢成品檢驗記錄(pqc2)
-                                        for (int j = 0; j < pqcItemList.Count; j++)
+                                        if (ipqc2ResultList.Count > 0)
                                         {
-                                            IpqcItem itemList = (IpqcItem)pqcItemList[j];
-                                            String updPqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc2=@pqc2"
-                                                 + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
-                                            using (SqlCommand updPqc2Datacommand = new SqlCommand(updPqc2Data, connection))
+
+                                        }
+                                        if (pqcItemList.Count > 0)
+                                        {
+                                            for (int j = 0; j < pqcItemList.Count; j++)
                                             {
-                                                updPqc2Datacommand.Parameters.AddWithValue("@pqc2", ipqc2ResultList[j]);
-                                                int updateRowsAffected = updPqc2Datacommand.ExecuteNonQuery();
-                                                updPqc2RowsAffected = updPqc2RowsAffected + updateRowsAffected;
+                                                IpqcItem itemList = (IpqcItem)pqcItemList[j];
+                                                String updPqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc2=@pqc2"
+                                                     + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                                using (SqlCommand updPqc2Datacommand = new SqlCommand(updPqc2Data, connection))
+                                                {
+                                                    updPqc2Datacommand.Parameters.AddWithValue("@pqc2", ipqc2ResultList[j]);
+                                                    int updateRowsAffected = updPqc2Datacommand.ExecuteNonQuery();
+                                                    updPqc2RowsAffected = updPqc2RowsAffected + updateRowsAffected;
+                                                }
                                             }
                                         }
 
                                         //寫品檢成品檢驗記錄(pqc3)
+                                        if (ipqc3ResultList.Count > 0)
+                                        {
+
+                                        }
                                         for (int k = 0; k < pqcItemList.Count; k++)
                                         {
                                             IpqcItem itemList = (IpqcItem)pqcItemList[k];
