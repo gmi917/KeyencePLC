@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HostLinkSample_V200")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ba52f0bad8544bf0655e037ab408422425c4a733")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+48f3484a832a68c5ee2c70d964af2fbfcc06d9c3")]
 [assembly: System.Reflection.AssemblyProductAttribute("HostLinkSample_V200")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HostLinkSample_V200")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
