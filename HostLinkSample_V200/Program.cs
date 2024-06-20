@@ -22,35 +22,37 @@ namespace cs_dll_sample
             int err = 0;
             int sock = 0;  
             //測試DB
-            string connectionString = "Server=192.168.1.9,1433;Database=TEST1;User Id=pwc;Password=PWC@admin;";
+            //string connectionString = "Server=192.168.1.9,1433;Database=TEST1;User Id=pwc;Password=PWC@admin;";
             //正式DB
-            //string connectionString = "Server=192.168.1.9,1433;Database=JOYTECH;User Id=pwc;Password=PWC@admin;";
+            string connectionString = "Server=192.168.1.9,1433;Database=JOYTECH;User Id=pwc;Password=PWC@admin;";
             //Log DB
             string LogconnectionString = "Server=192.168.1.9,1433;Database=LOG;User Id=pwc;Password=PWC@admin;";
-            string DBName = "TEST1";//測試資料庫
-            //string DBName="JOYTECH";//正式資料庫
+            //string DBName = "TEST1";//測試資料庫
+            string DBName="JOYTECH";//正式資料庫
             SqlConnection connection = null;
             SqlConnection Logconnection = null;
-            ArrayList ipqc1TMXResultList = new ArrayList();//儲存工件一量測數據
-            ArrayList ipqc2TMXResultList = new ArrayList();//儲存工件二量測數據
-            ArrayList ipqc3TMXResultList = new ArrayList();//儲存工件三量測數據
+            ArrayList ipqc1TMXResultList = new ArrayList();//儲存TMX工件一量測數據
+            ArrayList ipqc2TMXResultList = new ArrayList();//儲存TMX工件二量測數據
+            ArrayList ipqc3TMXResultList = new ArrayList();//儲存TMX工件三量測數據
             ArrayList ipqc1CCDResultList = new ArrayList();//儲存CCD工件一量測數據
             ArrayList ipqc2CCDResultList = new ArrayList();//儲存CCD工件二量測數據
             ArrayList ipqc3CCDResultList = new ArrayList();//儲存CCD工件三量測數據
-            ArrayList ipqc1TMXItemList = new ArrayList();//現場人員
-            ArrayList ipqc1CCDItemList = new ArrayList();//現場人員
-            ArrayList ipqc1OtherItemList = new ArrayList();//現場人員
-            ArrayList ipqc2TMXItemList = new ArrayList();//現場人員
-            ArrayList ipqc2CCDItemList = new ArrayList();//現場人員
-            ArrayList ipqc3TMXItemList = new ArrayList();//現場人員
-            ArrayList ipqc3CCDItemList = new ArrayList();//現場人員
-            ArrayList pqcTMXItemList = new ArrayList();//品檢人員
-            ArrayList pqcCCDItemList = new ArrayList();//品檢人員
+            ArrayList ipqc1TMXItemList = new ArrayList();//現場人員撈DB TMX工件一
+            ArrayList ipqc1CCDItemList = new ArrayList();//現場人員撈DB CCD工件一
+            ArrayList ipqc1OtherItemList = new ArrayList();//現場人員撈DB其他剩餘項目
+            ArrayList ipqc2TMXItemList = new ArrayList();//現場人員撈DB TMX工件二
+            ArrayList ipqc2CCDItemList = new ArrayList();//現場人員撈DB CCD工件二
+            ArrayList ipqc3TMXItemList = new ArrayList();//現場人員撈DB TMX工件三
+            ArrayList ipqc3CCDItemList = new ArrayList();//現場人員撈DB CCD工件三
+            ArrayList pqc1TMXItemList = new ArrayList();//品檢人員撈DB TMX工件一
+            ArrayList pqc1CCDItemList = new ArrayList();//品檢人員撈DB CCD工件一
             ArrayList pqcItemList = new ArrayList();//品檢人員            
-            float[] rdEM3000float = new float[2];//讀取工件一量測數據暫存器
-            float[] rdEM4000float = new float[2];//讀取工件二量測數據暫存器
-            float[] rdEM5000float = new float[2];//讀取工件三量測數據暫存器
-            float[] rdEM6000float = new float[2];//讀取CCD內徑工件一量測數據暫存器
+            float[] rdEM3000float = new float[2];//讀取TMX工件一量測數據暫存器
+            float[] rdEM4000float = new float[2];//讀取TMX工件二量測數據暫存器
+            float[] rdEM5000float = new float[2];//讀取TMX工件三量測數據暫存器
+            float[] rdEM6010float = new float[2];//讀取CCD內徑工件一量測數據暫存器
+            float[] rdEM6014float = new float[2];//讀取CCD內徑工件二量測數據暫存器
+            float[] rdEM6018float = new float[2];//讀取CCD內徑工件三量測數據暫存器
             string itemNumber = "";//產品品號
             string maxFormNumber = ""; //產品品號的表單號碼最大值
             string productLineId = "";//生產線別
@@ -61,15 +63,20 @@ namespace cs_dll_sample
             string firstItemDate = "";//首件日期(格式:年-月-日)
             string ZF0 = "";//1→現場人員 or 2→品檢人員
             string ZF4 = ""; //1→OP1 or 2→OP2
-            string ZF8 = "";//量測數據完成信號(1→三個工件都完成)
+            string ZF8 = "";//量測數據完成信號(1→工件完成)
             string ZF10 = "";//(預留)
-            string ZF16 = "";//工件一量測數據OK or NG信號
-            string ZF18 = "";//工件二量測數據OK or NG信號
-            string ZF20 = "";//工件三量測數據OK or NG信號
-            string ZF16ipqc1 = "";//工件一量測數據信號(1→OK;2→NG)
-            string ZF18ipqc2 = "";//工件二量測數據信號(1→OK;2→NG)
-            string ZF20ipqc3 = "";//工件三量測數據信號(1→OK;2→NG)
-            string ZF24CCD = "";//CCD內徑量測數據信號(1→OK;2→NG)
+            string ZF16 = "";//TMX工件一量測數據OK or NG信號
+            string ZF18 = "";//TMX工件二量測數據OK or NG信號
+            string ZF20 = "";//TMX工件三量測數據OK or NG信號
+            string ZF24 = "";//CCD工件一量測數據OK or NG信號
+            string ZF26 = "";//CCD工件二量測數據OK or NG信號
+            string ZF28 = "";//CCD工件三量測數據OK or NG信號
+            string ZF16ipqc1 = "";//TMX工件一量測數據信號(1→OK;2→NG)
+            string ZF18ipqc2 = "";//TMX工件二量測數據信號(1→OK;2→NG)
+            string ZF20ipqc3 = "";//TMX工件三量測數據信號(1→OK;2→NG)
+            string ZF24CCDipqc1 = "";//CCD內徑工件一量測數據信號(1→OK;2→NG)
+            string ZF26CCDipqc2 = "";//CCD內徑工件二量測數據信號(1→OK;2→NG)
+            string ZF28CCDipqc3 = "";//CCD內徑工件三量測數據信號(1→OK;2→NG)
             string mo = "";//製令單別
             string mn = "";//製令單號
             string defective = "不合格";//判定結果
@@ -138,7 +145,7 @@ namespace cs_dll_sample
             byte[] readBuf = new byte[2048];
             byte[] writeBuf = new byte[2048];
  
-            //讀EM3000工件一量測數據暫存器
+            //讀EM3000 TMX工件一量測數據暫存器
             Console.WriteLine("讀EM3000工件一量測數據暫存器(EM3000~EM3098)");
 
             for (uint i = 0; i < 100; i += 2)
@@ -168,8 +175,8 @@ namespace cs_dll_sample
                 Console.WriteLine(value);
             }
 
-            //讀EM4000工件二量測數據暫存器
-            Console.WriteLine("讀EM4000工件一量測數據暫存器(EM4000~EM4098)");
+            //讀EM4000 TMX工件二量測數據暫存器
+            Console.WriteLine("讀EM4000工件二量測數據暫存器(EM4000~EM4098)");
             for (uint i = 0; i < 100; i += 2)
             {
                 err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 4000 + i, 2, readBuf);
@@ -196,8 +203,8 @@ namespace cs_dll_sample
                 Console.WriteLine(value);
             }
 
-            //讀EM5000工件三量測數據暫存器
-            Console.WriteLine("讀EM5000工件一量測數據暫存器(EM5000~EM5098)");
+            //讀EM5000 TMX工件三量測數據暫存器
+            Console.WriteLine("讀EM5000工件三量測數據暫存器(EM5000~EM5098)");
             for (uint i = 0; i < 100; i += 2)
             {
                 err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 5000 + i, 2, readBuf);
@@ -224,11 +231,11 @@ namespace cs_dll_sample
                 Console.WriteLine(value);
             }
 
-            //讀CCD內徑量測數據暫存器
-            Console.WriteLine("讀CCD內徑量測數據暫存器(EM6000~EM6002)");
+            //讀CCD內徑工件一量測數據暫存器
+            Console.WriteLine("讀CCD內徑工件一量測數據暫存器(EM6010~EM6012)");
             for (uint i = 0; i < 3; i += 2)
             {
-                err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 6000 + i, 2, readBuf);
+                err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 6010 + i, 2, readBuf);
                 if (err != 0)
                 {
                     result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
@@ -237,16 +244,70 @@ namespace cs_dll_sample
                     KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
                     return;
                 }
-                KHST.ByteToFloat(ref rdEM6000float, readBuf, 2, 0);
-                if (rdEM6000float[0] == 0)
+                KHST.ByteToFloat(ref rdEM6010float, readBuf, 2, 0);
+                if (rdEM6010float[0] == 0)
                 {
                     break;
                 }
-                //將rdEM6000float[0]的值存到ArrayList
-                ipqc1CCDResultList.Add(rdEM6000float[0]);
+                //將rdEM6010float[0]的值存到ArrayList
+                ipqc1CCDResultList.Add(rdEM6010float[0]);
             }
             Console.WriteLine("Result ipqc1CCDResultList List:");
             foreach (float value in ipqc1CCDResultList)
+            {
+                Console.WriteLine(value);
+            }
+
+            //讀CCD內徑工件二量測數據暫存器
+            Console.WriteLine("讀CCD內徑工件二量測數據暫存器(EM6014~EM6016)");
+            for (uint i = 0; i < 3; i += 2)
+            {
+                err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 6014 + i, 2, readBuf);
+                if (err != 0)
+                {
+                    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                    Console.WriteLine("PLC連線發生異常");
+                    Console.WriteLine(err);
+                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+                    return;
+                }
+                KHST.ByteToFloat(ref rdEM6014float, readBuf, 2, 0);
+                if (rdEM6014float[0] == 0)
+                {
+                    break;
+                }
+                //將rdEM6014float[0]的值存到ArrayList
+                ipqc2CCDResultList.Add(rdEM6014float[0]);
+            }
+            Console.WriteLine("Result ipqc2CCDResultList List:");
+            foreach (float value in ipqc2CCDResultList)
+            {
+                Console.WriteLine(value);
+            }
+
+            //讀CCD內徑工件三量測數據暫存器
+            Console.WriteLine("讀CCD內徑工件三量測數據暫存器(EM6018~EM6020)");
+            for (uint i = 0; i < 3; i += 2)
+            {
+                err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_EM, 6018 + i, 2, readBuf);
+                if (err != 0)
+                {
+                    result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                    Console.WriteLine("PLC連線發生異常");
+                    Console.WriteLine(err);
+                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+                    return;
+                }
+                KHST.ByteToFloat(ref rdEM6018float, readBuf, 2, 0);
+                if (rdEM6018float[0] == 0)
+                {
+                    break;
+                }
+                //將rdEM6018float[0]的值存到ArrayList
+                ipqc3CCDResultList.Add(rdEM6018float[0]);
+            }
+            Console.WriteLine("Result ipqc3CCDResultList List:");
+            foreach (float value in ipqc3CCDResultList)
             {
                 Console.WriteLine(value);
             }
@@ -363,7 +424,7 @@ namespace cs_dll_sample
             }
             Console.WriteLine("ZF8:" + ZF8);
 
-            //工件一量測數據OK or NG信號(ZF16)
+            //TMX工件一量測數據OK or NG信號(ZF16)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 16, 1, readBuf);
             if (err != 0)
             {
@@ -390,7 +451,7 @@ namespace cs_dll_sample
             }
             Console.WriteLine("ZF16ipqc1:" + ZF16ipqc1);
 
-            //工件二量測數據OK or NG信號(ZF18)
+            //TMX工件二量測數據OK or NG信號(ZF18)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 18, 1, readBuf);
             if (err != 0)
             {
@@ -418,7 +479,7 @@ namespace cs_dll_sample
             }
             Console.WriteLine("ZF18ipqc2:" + ZF18ipqc2);
 
-            //工件三量測數據OK or NG信號(ZF20)
+            //TMX工件三量測數據OK or NG信號(ZF20)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 20, 1, readBuf);
             if (err != 0)
             {
@@ -446,7 +507,7 @@ namespace cs_dll_sample
             }
             Console.WriteLine("ZF20ipqc3:" + ZF20ipqc3);
 
-            //CCD內徑量測數據OK or NG信號(ZF24)
+            //CCD內徑工件一量測數據OK or NG信號(ZF24)
             err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 24, 1, readBuf);
             if (err != 0)
             {
@@ -456,25 +517,64 @@ namespace cs_dll_sample
                 KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
                 return;
             }
-            Console.WriteLine("讀CCD內徑量測數據OK or NG信號(ZF24)");
-            //int[] rdZF22Str = new int[2];
-            //KHST.ByteToInt(ref rdZF22Str, readBuf, 2, 0);
-            //ZF22CCD = rdZF22Str[0].ToString();
-            //Console.WriteLine("\tZF22:{0}", ZF22CCD);
-            byte[] rdZF22Str = new byte[2];
-            KHST.ByteToString(ref rdZF22Str, readBuf, 1, 0, 2);
-            //Console.WriteLine(System.Text.Encoding.GetEncoding(65001).GetString(rdZF22Str));
-            ZF24CCD = System.Text.Encoding.GetEncoding(65001).GetString(rdZF22Str);
-            
-            //ZF4 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF4Str);
-            //Console.WriteLine("ZF4:" + ZF4);
-            int ZF24CharIndex = ZF24CCD.IndexOf('\0');
+            Console.WriteLine("讀CCD內徑量測數據OK or NG信號(ZF24)");           
+            byte[] rdZF24Str = new byte[2];
+            KHST.ByteToString(ref rdZF24Str, readBuf, 1, 0, 2);
+            ZF24CCDipqc1 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF24Str);
+           
+            int ZF24CharIndex = ZF24CCDipqc1.IndexOf('\0');
             if (ZF24CharIndex != -1)
             {
                 // 提取 '\0' 之前的字符串
-                ZF24CCD = ZF24CCD.Substring(0, ZF24CharIndex);
+                ZF24CCDipqc1 = ZF24CCDipqc1.Substring(0, ZF24CharIndex);
             }
-            Console.WriteLine("ZF24CCD:" + ZF24CCD);           
+            Console.WriteLine("ZF24CCDipqc1:" + ZF24CCDipqc1);
+
+            //CCD內徑工件二量測數據OK or NG信號(ZF26)
+            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 26, 1, readBuf);
+            if (err != 0)
+            {
+                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                Console.WriteLine("PLC連線發生異常");
+                Console.WriteLine(err);
+                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+                return;
+            }
+            Console.WriteLine("讀CCD內徑量測數據OK or NG信號(ZF24)");
+            byte[] rdZF26Str = new byte[2];
+            KHST.ByteToString(ref rdZF26Str, readBuf, 1, 0, 2);
+            ZF26CCDipqc2 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF26Str);
+
+            int ZF26CharIndex = ZF26CCDipqc2.IndexOf('\0');
+            if (ZF26CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF26CCDipqc2 = ZF26CCDipqc2.Substring(0, ZF26CharIndex);
+            }
+            Console.WriteLine("ZF26CCDipqc2:" + ZF26CCDipqc2);
+
+            //CCD內徑工件三量測數據OK or NG信號(ZF28)
+            err = KHL.KHLReadDevicesAsWords(sock, KvHostLink.KHLDevType.DEV_ZF, 28, 1, readBuf);
+            if (err != 0)
+            {
+                result = MessageBox.Show("PLC連線發生異常，操作失敗", "錯誤", buttons, MessageBoxIcon.Error);
+                Console.WriteLine("PLC連線發生異常");
+                Console.WriteLine(err);
+                KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
+                return;
+            }
+            Console.WriteLine("讀CCD內徑量測數據OK or NG信號(ZF24)");
+            byte[] rdZF28Str = new byte[2];
+            KHST.ByteToString(ref rdZF28Str, readBuf, 1, 0, 2);
+            ZF28CCDipqc3 = System.Text.Encoding.GetEncoding(65001).GetString(rdZF28Str);
+
+            int ZF28CharIndex = ZF28CCDipqc3.IndexOf('\0');
+            if (ZF28CharIndex != -1)
+            {
+                // 提取 '\0' 之前的字符串
+                ZF28CCDipqc3 = ZF28CCDipqc3.Substring(0, ZF28CharIndex);
+            }
+            Console.WriteLine("ZF28CCDipqc3:" + ZF28CCDipqc3);
 
             //格式化為 YYYY-MM-DD 的格式
             DateTime today = DateTime.Now;
@@ -541,7 +641,7 @@ namespace cs_dll_sample
             //ZF20ipqc3 = "2";
             //ZF0 = "1";
             //mn = "23122700008";
-            //ZF8 = "1";
+            ZF8 = "1";
 
             try
             {
@@ -717,7 +817,7 @@ namespace cs_dll_sample
                                     //比對筆數
                                     if (ipqc1TMXItemList.Count > 0 && ipqc1CCDItemList.Count > 0)
                                     {
-                                        if (!(ipqc1TMXResultList.Count + ipqc1CCDItemList.Count).Equals(ipqc1TMXItemList.Count + ipqc1CCDItemList.Count))
+                                        if (!(ipqc1TMXResultList.Count + ipqc1CCDResultList.Count).Equals(ipqc1TMXItemList.Count + ipqc1CCDItemList.Count))
                                         {
                                             result = MessageBox.Show("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，現場人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
                                             Console.WriteLine("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，現場人員操作失敗");
@@ -1185,9 +1285,9 @@ namespace cs_dll_sample
                                             KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
                                             return;
                                         }
-                                        result = MessageBox.Show("現場人員上傳資料完成", "結果", buttons);
-                                        Console.WriteLine("現場人員上傳資料完成");
-                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "現場人員上傳資料完成", "結果", "");
+                                        result = MessageBox.Show("現場人員上傳資料完成，請接著登入web介面手動輸入其他檢測數據", "結果", buttons);
+                                        Console.WriteLine("現場人員上傳資料完成，請接著登入web介面手動輸入其他檢測數據");
+                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "現場人員上傳資料完成，請接著登入web介面手動輸入其他檢測數據", "結果", "");
                                         return;
                                     }
                                     else
@@ -1211,7 +1311,7 @@ namespace cs_dll_sample
                     else if (ZF0 != null && !ZF0.Equals("") && ZF0.Equals("2"))//品檢人員
                     {
                         //品檢人員找尋qc_id
-                        string getQc_idQuery = "SELECT  qc_id FROM " + DBName + ".dbo.QCDataCollection where pqcStatus='0' and manufactureOrder='" + mo + "'"
+                        string getQc_idQuery = "SELECT  qc_id FROM " + DBName + ".dbo.QCDataCollection where pqcStatus='0' and IpqcTMXStatus='1' and manufactureOrder='" + mo + "'"
                              + " and manufactureNo='" + mn + "'";
                         using (SqlCommand getQc_idQuerycommand = new SqlCommand(getQc_idQuery, connection))
                         {
@@ -1220,6 +1320,7 @@ namespace cs_dll_sample
                                 if (getQc_idQueryreader.Read())
                                 {
                                     qcId = getQc_idQueryreader["qc_id"].ToString();
+                                    Console.WriteLine("qcId: " + qcId);
                                     getQc_idQueryreader.Close();
                                     //寫品檢成品檢驗記錄
                                     String getQCDataCollectionData = "select qc_id,itemName,specification,manufactureOrder,manufactureNo,partNumber,imageNumber,version,formNumber,firstItemDate,firstItemStaff,machineNumber,imageFileName from " + DBName + ".dbo.QCDataCollection where "
@@ -1249,7 +1350,7 @@ namespace cs_dll_sample
                                             getQCDataCollectionDatareader.Close();
                                             //品檢人員找尋未檢驗的TMX首件/自主檢查記錄詳細資料
                                             String getQCTMXTestData = "select qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit,testTool,flag,ipqc1,ipqc2,ipqc3 from " + DBName + ".dbo.QCDataCollectionContent where "
-                                                 + "qc_id='" + qcId + "' and testTool='TMX' order by itemSN asc";
+                                                 + "qc_id='" + qcId + "' and UPPER(testTool)='TMX' order by itemSN asc";
                                             using (SqlCommand getQCTMXTestDatacommand = new SqlCommand(getQCTMXTestData, connection))
                                             {
                                                 using (SqlDataReader getQCTMXTestDatareader = getQCTMXTestDatacommand.ExecuteReader())
@@ -1263,7 +1364,7 @@ namespace cs_dll_sample
                                                         item.JYT012b007 = getQCTMXTestDatareader["standardValue"].ToString();
                                                         item.JYT012b008 = getQCTMXTestDatareader["upperLimit"].ToString();
                                                         item.JYT012b009 = getQCTMXTestDatareader["lowerLimit"].ToString();
-                                                        pqcTMXItemList.Add(item);
+                                                        pqc1TMXItemList.Add(item);
                                                     }
                                                     getQCTMXTestDatareader.Close();
                                                 }
@@ -1271,7 +1372,7 @@ namespace cs_dll_sample
 
                                             //品檢人員找尋未檢驗的CCD首件/自主檢查記錄詳細資料
                                             String getQCCCDTestData = "select qc_id,itemSN,testItem,testUnit,standardValue,upperLimit,lowerLimit,testTool,flag,ipqc1,ipqc2,ipqc3 from " + DBName + ".dbo.QCDataCollectionContent where "
-                                                 + "qc_id='" + qcId + "' and testTool='CCD' order by itemSN asc";
+                                                 + "qc_id='" + qcId + "' and UPPER(testTool)='CCD' order by itemSN asc";
                                             using (SqlCommand getQCCCDTestDatacommand = new SqlCommand(getQCCCDTestData, connection))
                                             {
                                                 using (SqlDataReader getQCCCDTestDatareader = getQCCCDTestDatacommand.ExecuteReader())
@@ -1285,43 +1386,43 @@ namespace cs_dll_sample
                                                         item.JYT012b007 = getQCCCDTestDatareader["standardValue"].ToString();
                                                         item.JYT012b008 = getQCCCDTestDatareader["upperLimit"].ToString();
                                                         item.JYT012b009 = getQCCCDTestDatareader["lowerLimit"].ToString();
-                                                        pqcCCDItemList.Add(item);
+                                                        pqc1CCDItemList.Add(item);
                                                     }
                                                     getQCCCDTestDatareader.Close();
                                                 }
                                             }
 
                                             //確認資料筆數
-                                            if (pqcTMXItemList.Count > 0 && pqcCCDItemList.Count > 0)
+                                            if (pqc1TMXItemList.Count > 0 && pqc1CCDItemList.Count > 0)
                                             {
-                                                if (!ipqc1TMXResultList.Count.Equals(pqcTMXItemList.Count + pqcCCDItemList.Count))
+                                                if (!(ipqc1TMXResultList.Count + ipqc1CCDResultList.Count).Equals(pqc1TMXItemList.Count + pqc1CCDItemList.Count))
                                                 {
                                                     result = MessageBox.Show("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
                                                     Console.WriteLine("DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，品檢人員操作失敗");
                                                     KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀加CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
                                                     return;
                                                 }
-                                                else if (pqcTMXItemList.Count > 0)
+                                            }
+                                            else if (pqc1TMXItemList.Count > 0)
+                                            {
+                                                if (!ipqc1TMXResultList.Count.Equals(pqc1TMXItemList.Count))
                                                 {
-                                                    if (!ipqc1TMXResultList.Count.Equals(pqcTMXItemList.Count))
-                                                    {
-                                                        result = MessageBox.Show("DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                                        Console.WriteLine("DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗");
-                                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
-                                                        return;
-                                                    }
-                                                }
-                                                else if (pqcCCDItemList.Count > 0)
-                                                {
-                                                    if (!ipqc1TMXResultList.Count.Equals(pqcCCDItemList.Count))
-                                                    {
-                                                        result = MessageBox.Show("DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
-                                                        Console.WriteLine("DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗");
-                                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
-                                                        return;
-                                                    }
+                                                    result = MessageBox.Show("DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                    Console.WriteLine("DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗");
+                                                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與影像量測儀兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
+                                                    return;
                                                 }
                                             }
+                                            else if (pqc1CCDItemList.Count > 0)
+                                            {
+                                                if (!ipqc1CCDResultList.Count.Equals(pqc1CCDItemList.Count))
+                                                {
+                                                    result = MessageBox.Show("DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
+                                                    Console.WriteLine("DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗");
+                                                    KvHostLinkLog(employeeID, mo, mn, itemNumber, "DSS資料與CCD兩者檢測數據筆數不一致，品檢人員操作失敗", "警告", "");
+                                                    return;
+                                                }
+                                            }                                            
                                             else
                                             {
                                                 result = MessageBox.Show("在DSS系統找不到資料，品檢人員操作失敗", "警告", buttons, MessageBoxIcon.Warning);
@@ -1330,69 +1431,129 @@ namespace cs_dll_sample
                                                 return;
                                             }
 
-                                            //寫品檢成品檢驗記錄(pqc1)
-                                            for (int i = 0; i < pqcItemList.Count; i++)
+                                            //寫品檢TMX檢驗記錄(pqc1)
+                                            for (int p = 0; p < pqc1TMXItemList.Count; p++)
                                             {
-                                                IpqcItem itemList = (IpqcItem)pqcItemList[i];
-                                                String updPqc1Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc1=@pqc1"
+                                                IpqcItem itemList = (IpqcItem)pqc1TMXItemList[p];
+                                                String updPqc1TMXData = "update " + DBName + ".dbo.QCDataCollectionContent set pqc1=@pqc1"
                                                      + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
-                                                using (SqlCommand updPqc1Datacommand = new SqlCommand(updPqc1Data, connection))
+                                                using (SqlCommand updPqc1TMXDatacommand = new SqlCommand(updPqc1TMXData, connection))
                                                 {
-                                                    updPqc1Datacommand.Parameters.AddWithValue("@pqc1", ipqc1TMXResultList[i]);
-                                                    int updateRowsAffected = updPqc1Datacommand.ExecuteNonQuery();
+                                                    updPqc1TMXDatacommand.Parameters.AddWithValue("@pqc1", ipqc1TMXResultList[p]);
+                                                    int updateRowsAffected = updPqc1TMXDatacommand.ExecuteNonQuery();
                                                     updPqc1RowsAffected = updPqc1RowsAffected + updateRowsAffected;
                                                 }
                                             }
 
-                                            //寫品檢成品檢驗記錄(pqc2)
+                                            //寫品檢CCD檢驗記錄(pqc1)
+                                            for (int c = 0; c < pqc1CCDItemList.Count; c++)
+                                            {
+                                                IpqcItem itemList = (IpqcItem)pqc1CCDItemList[c];
+                                                String updPqc1CCDData = "update " + DBName + ".dbo.QCDataCollectionContent set pqc1=@pqc1"
+                                                     + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                                using (SqlCommand updPqc1CCDDatacommand = new SqlCommand(updPqc1CCDData, connection))
+                                                {
+                                                    updPqc1CCDDatacommand.Parameters.AddWithValue("@pqc1", ipqc1CCDResultList[c]);
+                                                    int updateRowsAffected = updPqc1CCDDatacommand.ExecuteNonQuery();
+                                                    updPqc1RowsAffected = updPqc1RowsAffected + updateRowsAffected;
+                                                }
+                                            }
+
+                                            //寫品檢TMX檢驗記錄(pqc2)
                                             if (ipqc2TMXResultList.Count > 0)
                                             {
-
-                                            }
-                                            if (pqcItemList.Count > 0)
-                                            {
-                                                for (int j = 0; j < pqcItemList.Count; j++)
+                                                for (int j = 0; j < pqc1TMXItemList.Count; j++)
                                                 {
-                                                    IpqcItem itemList = (IpqcItem)pqcItemList[j];
-                                                    String updPqc2Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc2=@pqc2"
+                                                    IpqcItem itemList = (IpqcItem)pqc1TMXItemList[j];
+                                                    String updPqc2TMXData = "update " + DBName + ".dbo.QCDataCollectionContent set pqc2=@pqc2"
                                                          + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
-                                                    using (SqlCommand updPqc2Datacommand = new SqlCommand(updPqc2Data, connection))
+                                                    using (SqlCommand updPqc2TMXDatacommand = new SqlCommand(updPqc2TMXData, connection))
                                                     {
-                                                        updPqc2Datacommand.Parameters.AddWithValue("@pqc2", ipqc2TMXResultList[j]);
-                                                        int updateRowsAffected = updPqc2Datacommand.ExecuteNonQuery();
+                                                        updPqc2TMXDatacommand.Parameters.AddWithValue("@pqc2", ipqc2TMXResultList[j]);
+                                                        int updateRowsAffected = updPqc2TMXDatacommand.ExecuteNonQuery();
                                                         updPqc2RowsAffected = updPqc2RowsAffected + updateRowsAffected;
                                                     }
                                                 }
                                             }
 
-                                            //寫品檢成品檢驗記錄(pqc3)
-                                            if (ipqc3TMXResultList.Count > 0)
+                                            //寫品檢CCD檢驗記錄(pqc2)
+                                            if (ipqc2CCDResultList.Count > 0)
                                             {
-
-                                            }
-                                            for (int k = 0; k < pqcItemList.Count; k++)
-                                            {
-                                                IpqcItem itemList = (IpqcItem)pqcItemList[k];
-                                                String updPqc3Data = "update " + DBName + ".dbo.QCDataCollectionContent set pqc3=@pqc3"
-                                                     + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
-                                                using (SqlCommand updPqc3Datacommand = new SqlCommand(updPqc3Data, connection))
+                                                for (int r = 0; r < pqc1CCDItemList.Count; r++)
                                                 {
-                                                    updPqc3Datacommand.Parameters.AddWithValue("@pqc3", ipqc3TMXResultList[k]);
-                                                    int updateRowsAffected = updPqc3Datacommand.ExecuteNonQuery();
-                                                    updPqc3RowsAffected = updPqc3RowsAffected + updateRowsAffected;
+                                                    IpqcItem itemList = (IpqcItem)pqc1CCDItemList[r];
+                                                    String updPqc2CCDData = "update " + DBName + ".dbo.QCDataCollectionContent set pqc2=@pqc2"
+                                                         + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                                    using (SqlCommand updPqc2CCDDatacommand = new SqlCommand(updPqc2CCDData, connection))
+                                                    {
+                                                        updPqc2CCDDatacommand.Parameters.AddWithValue("@pqc2", ipqc2CCDResultList[r]);
+                                                        int updateRowsAffected = updPqc2CCDDatacommand.ExecuteNonQuery();
+                                                        updPqc2RowsAffected = updPqc2RowsAffected + updateRowsAffected;
+                                                    }
                                                 }
                                             }
 
-                                            if (ZF16ipqc1.Equals("1") && ZF18ipqc2.Equals("1") && ZF20ipqc3.Equals("1"))
+                                            //寫品檢TMX檢驗記錄(pqc3)
+                                            if (ipqc3TMXResultList.Count > 0)
                                             {
-                                                defective = "合格";
+                                                for (int k = 0; k < pqc1TMXItemList.Count; k++)
+                                                {
+                                                    IpqcItem itemList = (IpqcItem)pqc1TMXItemList[k];
+                                                    String updPqc3TMXData = "update " + DBName + ".dbo.QCDataCollectionContent set pqc3=@pqc3"
+                                                         + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                                    using (SqlCommand updPqc3TMXDatacommand = new SqlCommand(updPqc3TMXData, connection))
+                                                    {
+                                                        updPqc3TMXDatacommand.Parameters.AddWithValue("@pqc3", ipqc3TMXResultList[k]);
+                                                        int updateRowsAffected = updPqc3TMXDatacommand.ExecuteNonQuery();
+                                                        updPqc3RowsAffected = updPqc3RowsAffected + updateRowsAffected;
+                                                    }
+                                                }
                                             }
-                                            else
+
+                                            //寫品檢CCD檢驗記錄(pqc3)
+                                            if (ipqc3CCDResultList.Count > 0)
+                                            {
+                                                for (int k = 0; k < pqc1CCDItemList.Count; k++)
+                                                {
+                                                    IpqcItem itemList = (IpqcItem)pqc1CCDItemList[k];
+                                                    String updPqc3CCDData = "update " + DBName + ".dbo.QCDataCollectionContent set pqc3=@pqc3"
+                                                         + " where qc_id='" + qcId + "' and itemSN='" + itemList.JYT012b003 + "'";
+                                                    using (SqlCommand updPqc3CCDDatacommand = new SqlCommand(updPqc3CCDData, connection))
+                                                    {
+                                                        updPqc3CCDDatacommand.Parameters.AddWithValue("@pqc3", ipqc3CCDResultList[k]);
+                                                        int updateRowsAffected = updPqc3CCDDatacommand.ExecuteNonQuery();
+                                                        updPqc3RowsAffected = updPqc3RowsAffected + updateRowsAffected;
+                                                    }
+                                                }
+                                            }
+
+                                            if(!ZF16ipqc1.Equals("") && ZF16ipqc1.Equals("2"))
                                             {
                                                 defective = "不合格";
                                             }
+                                            else if (!ZF18ipqc2.Equals("") && ZF18ipqc2.Equals("2"))
+                                            {
+                                                defective = "不合格";
+                                            }else if(!ZF20ipqc3.Equals("") && ZF20ipqc3.Equals("2"))
+                                            {
+                                                defective = "不合格";
+                                            }else if (!ZF24CCDipqc1.Equals("") && ZF24CCDipqc1.Equals("2"))
+                                            {
+                                                defective = "不合格";
+                                            }else if (!ZF26CCDipqc2.Equals("") && ZF26CCDipqc2.Equals("2"))
+                                            {
+                                                defective = "不合格";
+                                            }else if (!ZF28CCDipqc3.Equals("") && ZF28CCDipqc3.Equals("2"))
+                                            {
+                                                defective = "不合格";
+                                            }
+                                            else
+                                            {
+                                                defective = "合格";
+                                            }
+                                            
                                             //寫判定結果
-                                            if (updPqc1RowsAffected > 0 && updPqc2RowsAffected > 0 && updPqc3RowsAffected > 0)
+                                            if (updPqc1RowsAffected > 0)
                                             {
                                                 String insPqcResult = "insert into " + DBName + ".dbo.QCDataCollectionResult(qc_id,defective,determination,supervisor,inspectors,handleResult,pqcCREATOR)"
                                                      + " values(@qc_id,@defective,@determination,@supervisor,@inspectors,@handleResult,@pqcCREATOR)";
@@ -1414,11 +1575,12 @@ namespace cs_dll_sample
                                                     int insRowsAffected = insPqcResultcommand.ExecuteNonQuery();
                                                     if (insRowsAffected > 0)
                                                     {
-                                                        //回寫品檢有檢驗flag
-                                                        String updpqcStatusflag = "update " + DBName + ".dbo.QCDataCollection set pqcStatus=@pqcStatus where qc_id='" + qcId + "'";
+                                                        //回寫品檢有檢驗pqcStatus=1，和需要去web手動輸入剩餘的資料pqcTMXStatus=0
+                                                        String updpqcStatusflag = "update " + DBName + ".dbo.QCDataCollection set pqcStatus=@pqcStatus,pqcTMXStatus=@pqcTMXStatus where qc_id='" + qcId + "'";
                                                         using (SqlCommand updpqcStatusflagcommand = new SqlCommand(updpqcStatusflag, connection))
                                                         {
                                                             updpqcStatusflagcommand.Parameters.AddWithValue("@pqcStatus", "1");
+                                                            updpqcStatusflagcommand.Parameters.AddWithValue("@pqcTMXStatus", "0");
                                                             int updateRowsAffected = updpqcStatusflagcommand.ExecuteNonQuery();
                                                             Console.WriteLine("更新品檢人員檢驗flag資料筆數=" + updateRowsAffected + "筆");
                                                         }
@@ -1434,9 +1596,9 @@ namespace cs_dll_sample
                                                             KvHostLinkLog(employeeID, mo, mn, itemNumber, "PLC連線發生異常，操作失敗", "錯誤", err.ToString());
                                                             return;
                                                         }
-                                                        result = MessageBox.Show("品檢人員上傳資料完成", "結果", buttons);
-                                                        Console.WriteLine("品檢人員寫入資料成功");
-                                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "品檢人員寫入資料成功", "結果", "");
+                                                        result = MessageBox.Show("品檢人員上傳資料完成，請接著登入web介面手動輸入其他檢測數據", "結果", buttons);
+                                                        Console.WriteLine("品檢人員寫入資料成功，請接著登入web介面手動輸入其他檢測數據");
+                                                        KvHostLinkLog(employeeID, mo, mn, itemNumber, "品檢人員寫入資料成功，請接著登入web介面手動輸入其他檢測數據", "結果", "");
                                                         //確認品檢人員需檢驗次數
                                                         string getQcCountQuery = "SELECT  count(*) as count FROM " + DBName + ".dbo.QCDataCollection where pqcStatus='0' and manufactureOrder='" + mo + "'"
                                                            + " and manufactureNo='" + mn + "'";
