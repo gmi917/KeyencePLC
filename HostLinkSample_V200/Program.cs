@@ -641,7 +641,7 @@ namespace cs_dll_sample
             //ZF20ipqc3 = "2";
             //ZF0 = "1";
             //mn = "23122700008";
-            ZF8 = "1";
+            //ZF8 = "1";
 
             try
             {
